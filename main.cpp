@@ -350,9 +350,10 @@ void findMatches(std::string genomeStr, int minMatches, int skip, int startIndex
             startPos = (startPos > lastPos) ? lastPos : startPos; // avoid overshoot of last seed
 
             // Extract a seed (a kmer) from the sample sequence
-            std::cout << startPos << ":" << KMERSIZE << "\n";
-            std::cout << sampleSequences[i] << "\n";
+std::cout << startPos << ":" << KMERSIZE << "\n";
+std::cout << sampleSequences[i] << "\n";
             std::string seed = sampleSequences[i].substr(startPos, KMERSIZE);
+std::cout << "seed:" << seed << "\n";
             uint64_t pkmer = packKmer(seed.c_str());
             pkmer = pkmer ^ reverse_complement(pkmer, KMERSIZE);// canonical kmer
 
@@ -363,7 +364,7 @@ void findMatches(std::string genomeStr, int minMatches, int skip, int startIndex
 
             // Lookup the seed matches in the kMerMap
             std::vector<uint32_t> innerVector = getInnerVector(innerMapBlob, outerMapBlob, kmerHash);
-
+std::cout << "innerVector empty:" << innerVector.empty() << "\n";
              if (!innerVector.empty()) {
                  seedMatches++; // here if seed has matches (positions in the genome)
                  inputSets[seedIndex].insert(innerVector.begin(), innerVector.end()); // insert matches to current seed hits
@@ -374,7 +375,8 @@ void findMatches(std::string genomeStr, int minMatches, int skip, int startIndex
              }
         }
 
-        if (seedMatches<MIN_MATCHES)
+std::cout << "Matches:" << seedMatches << "\n";
+         if (seedMatches<MIN_MATCHES)
             continue;// read does not meet minimum seed mathces threshold
         
         std::vector<std::pair<uint32_t, uint32_t>> validSets = validSpans(inputSets, minMatches, lastPos);
@@ -496,7 +498,7 @@ void intialiseKISS(int argc, char* argv[]) {
     CUTOFF = 100;
     REFERENCE = "";/* "/Users/geva/Crispr/AMR106.fasta"; */
     READS = ""; /* /Users/geva/CAMDA/MatlabCamda2023/gCSD16_NYC_17_1.fasta" */;
-    OUTPUT_DIR = "/home/eszter/Documents/search/sources/save";
+    OUTPUT_DIR = "save";
     std::string regexPattern = "";  // Example: Match all .fasta files with ".*\\.fasta";
     MATCH_ALL = false;
     GET_SW = true;
