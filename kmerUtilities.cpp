@@ -7,7 +7,7 @@
 
 #include "kmerUtilities.hpp"
 
-extern int KMERSIZE;
+extern unsigned int KMERSIZE;
 extern int CUTOFF;
 extern uint64_t kmer_encoding_table[];
 

@@ -26,7 +26,7 @@
 #include <unordered_map>
 #include <iterator>
 #include <regex>
-#include <dirent.h>
+#include "dirent.h"
 #include <cstring>
 #include <cstdint>
 

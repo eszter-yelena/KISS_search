@@ -257,7 +257,7 @@ void loadSamples(const std::string& fastaFile) {
         cerr << "Failed to read " << fastaFile << endl;
         exit(1);
     }
-    long minLen= std::numeric_limits<long>::max();
+    long minLen= (std::numeric_limits<long>::max)();
     long maxLen= 0;
 
     char *p=data-1; // starrt of line
@@ -318,7 +318,7 @@ void findMatches(std::string genomeStr, int minMatches, int skip, int startIndex
     std::set<uint32_t> hitSet; // for keeping positions of seed hits on reference
     uint32_t kmerHash;
 
-    for (uint32_t i = startIndex; i <= endIndex; ++i)
+    for (int32_t i = startIndex; i <= endIndex; ++i)
     {
     //    int z=95; // debugging
     //    for (uint32_t i = z; i <= z; ++i)
