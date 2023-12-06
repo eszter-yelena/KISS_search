@@ -300,18 +300,24 @@ void displayProgress(uint64_t current, uint64_t total, int desiredUpdateInterval
 //    size_t inputSetIndex;
 //};
 
-bool isValid(const std::vector<int>& counts, uint32_t N) {
+/*
+    isVALID
+ */
+bool isValid(const std::vector<int>& counts, uint32_t minMatches) {
     size_t uniqueSets = 0;
     for (int count : counts) {
         if (count > 0) {
             uniqueSets++;
         }
     }
-    return uniqueSets >= N;
+    return uniqueSets >= minMatches;
 }
 
-std::vector<std::pair<uint32_t, uint32_t>> validSpans(const std::vector<std::set<uint32_t>>& inputSets,
-                                                      uint32_t N, uint32_t S) {
+/*
+    VALID SPANS
+ */
+std::vector<std::pair<uint32_t, uint32_t>> validSpans(const std::vector<std::set<uint32_t>>& inputSets, uint32_t minMatches, uint32_t lastPos) {
+    
     std::vector<std::pair<uint32_t, uint32_t>> result;
     size_t numSets = inputSets.size();
 
@@ -336,11 +342,15 @@ std::vector<std::pair<uint32_t, uint32_t>> validSpans(const std::vector<std::set
 
     // Iterate over the sorted positions
     while (startPos < positions.size()) {
-        if (endPos < positions.size() && positions[endPos].value - positions[startPos].value <= S) {
+        if (endPos < positions.size() && positions[endPos].value - positions[startPos].value <= lastPos) {
             counts[positions[endPos].inputSetIndex]++;
 
+
+// std::cout << "isValid: " << isValid(counts, minMatches) << std:: endl; 
+
             // Check if the current configuration of counts satisfies the condition N
-            if (isValid(counts, N)) {
+            if (isValid(counts, minMatches)) {
+        
                 // push start and end of range
 //                std::cout << positions[startPos].value+1 << " : " << positions[endPos].value
 //                     << " (" << positions[endPos].value-positions[startPos].value+KMERSIZE
@@ -352,10 +362,12 @@ std::vector<std::pair<uint32_t, uint32_t>> validSpans(const std::vector<std::set
                     std::vector<Position> pos(endPos-startPos+1);
                     for (size_t k=startPos; k<=endPos; k++)
                         pos[k-startPos] = positions[k];
+                   
                     if (getSpan(pos,KMERSIZE)>=CUTOFF)
                         // collecting first and last position in range (for SW alignment)
                         result.push_back({positions[startPos].value, positions[endPos].value});
                 }
+
                 // Skip the entire sequence
                 while (startPos < positions.size() && positions[startPos].value <= positions[endPos].value) {
                     counts[positions[startPos].inputSetIndex]--;
@@ -369,9 +381,19 @@ std::vector<std::pair<uint32_t, uint32_t>> validSpans(const std::vector<std::set
         }
     }
 
+// for debugging checking results are the same
+// std::cout << "Results: ";
+// for (const auto& span : result) {
+//     std::cout << "[" << span.first << ", " << span.second << "] ";
+// }
+// std:: cout << "\n";
+
     return result;
 }
 
+/*
+    GET SPAN
+ */
 uint32_t getSpan(const std::vector<Position>& pos, uint32_t span) {
     if (pos.empty()) {
         return 0;

@@ -5,8 +5,9 @@
 #include "serialiseKmersMap.hpp"
 #include <map>
 #include <cstring>
-#include <filesystem>
-#include <iostream>
+#include <unistd.h>
+#include <stdio.h>
+#include <limits.h>
 
 using std::cout;
 using std::endl;
@@ -80,8 +81,9 @@ void writeMatchesToFile(const std::string& filename,
         double swScore;
         std::string cigar;
         std::tie(sampleIndex, refBegin, refEnd, swScore, cigar) = result;
+        
         if (sampleIndex!=prev) {
-            unique++;
+            unique ++;
             prev = sampleIndex;
         }
        
@@ -140,6 +142,7 @@ std::vector<std::string> getFileNames(const std::string& rootDir) {
         if (lastSlashPos != std::string::npos) {
         baseFilename = baseFilename.substr(lastSlashPos + 1);
         }
+
         fileNames.push_back(rootDir);
         return fileNames;
     }
@@ -253,20 +256,25 @@ void loadSamples(const std::string& fastaFile) {
     // Start the timer
     auto start = std::chrono::steady_clock::now();
     char *data = read_entire_file(fastaFile.c_str(),fileSize);
-    if (data==NULL) {
+
+
+    // check if the file has data
+    if (data == NULL) {
         cerr << "Failed to read " << fastaFile << endl;
         exit(1);
     }
+
     long minLen= (std::numeric_limits<long>::max)();
     long maxLen= 0;
 
-    char *p=data-1; // starrt of line
-    char *q; // end of line
+    char *nextCharacter = data-1; // start of line
+    char *newLine; // end of line
     do
     {
-         p++;
-         q = strchr(p, '\n'); // find end of line
-         if (*p=='>') {
+         nextCharacter ++;
+         newLine = strchr(nextCharacter, '\n'); // find end of line
+         
+         if (*nextCharacter =='>') {
              if (!sequence.empty()) {
                  sampleSequences.push_back(sequence);
                  if (sequence.size() < minLen) minLen= (int) sequence.size();
@@ -274,26 +282,30 @@ void loadSamples(const std::string& fastaFile) {
                  sequence.clear(); // Clear the sequence for the next DNA sequence
              }
              // now skip sequence info
-             p=q;
+             nextCharacter = newLine;
              continue;
          }
-         if (q==NULL) {
-             // hit last line
-             q = strchr(p,'\0'); // find end of data
-             line.assign(p,q);
+
+         if (newLine == NULL) { // hit last line
+             newLine = strchr(nextCharacter,'\0'); // find end of data
+             line.assign(nextCharacter, newLine);
              sequence += line;
              sampleSequences.push_back(sequence); // push last sequence
              break;
          }
-         line.assign(p,q);
+
+         line.assign(nextCharacter, newLine);
          sequence += line;
-         p=q;
-     } while (p != NULL && *(p + 1) != '\0');
+         nextCharacter = newLine;
+
+     } while (nextCharacter != NULL && *(nextCharacter + 1) != '\0');
+     
      if (!sequence.empty()) {
          sampleSequences.push_back(sequence);
          if (sequence.size() < minLen) minLen= (int) sequence.size();
          if (sequence.size() > maxLen) maxLen= (int) sequence.size();
      }
+
     free(data);
     // Stop the timer
     auto end = std::chrono::steady_clock::now();
@@ -350,10 +362,10 @@ void findMatches(std::string genomeStr, int minMatches, int skip, int startIndex
             startPos = (startPos > lastPos) ? lastPos : startPos; // avoid overshoot of last seed
 
             // Extract a seed (a kmer) from the sample sequence
-std::cout << startPos << ":" << KMERSIZE << "\n";
-std::cout << sampleSequences[i] << "\n";
+// std::cout << startPos << ":" << KMERSIZE << "\n";
+// std::cout << sampleSequences[i] << "\n";
             std::string seed = sampleSequences[i].substr(startPos, KMERSIZE);
-std::cout << "seed:" << seed << "\n";
+// std::cout << "seed:" << seed << "\n";
             uint64_t pkmer = packKmer(seed.c_str());
             pkmer = pkmer ^ reverse_complement(pkmer, KMERSIZE);// canonical kmer
 
@@ -364,10 +376,19 @@ std::cout << "seed:" << seed << "\n";
 
             // Lookup the seed matches in the kMerMap
             std::vector<uint32_t> innerVector = getInnerVector(innerMapBlob, outerMapBlob, kmerHash);
-std::cout << "innerVector empty:" << innerVector.empty() << "\n";
+// std::cout << "innerVector empty:" << innerVector.empty() << "\n";
              if (!innerVector.empty()) {
                  seedMatches++; // here if seed has matches (positions in the genome)
                  inputSets[seedIndex].insert(innerVector.begin(), innerVector.end()); // insert matches to current seed hits
+ 
+ // for debugging checking accuracy of the matches
+//   std::cout << "Matched Seed: " << seed << ", Input Set: ";
+//         for (const auto &position : inputSets[seedIndex]) {
+//             std::cout << position << " ";
+//         }
+//         std::cout << std::endl;
+
+
              }
              else {
                  if ((seedIndex - seedMatches)>maxMisses)
@@ -396,9 +417,28 @@ std::cout << "Matches:" << seedMatches << "\n";
             int matchScore = 1;
             int mismatchScore = -1;
             int gapScore = -1;
-            localResultsSW = getSW(genomeStr, localResults, matchScore, mismatchScore, gapScore, CUTOFF);
-        }
+
+//for debugging, to print out what is being passed to the smith waterman so i can see where the bug is  
+std::cout << "Local results: " ;
+    for (const auto& tuple : localResults) {
+        std::cout << "(" << std::get<2>(tuple) << ", " << std::get<3>(tuple) << ")";
     }
+    std::cout << "\n";
+
+            localResultsSW = getSW(genomeStr, localResults, matchScore, mismatchScore, gapScore, CUTOFF);
+
+
+// for debugging print out the Smith-Waterman results
+ std::cout << "\nSmith-Waterman results: ";
+    for (const auto &swResult : localResultsSW) {
+      std::cout << "(" << std::get<0>(swResult) << ", " << std::get<1>(swResult) << ", " << std::get<2>(swResult) << ", " << std::get<3>(swResult) << ", " << std::get<4>(swResult) << ")";
+    }
+      std::cout << std::endl;
+
+        }
+        
+    }
+
     else
     {
         // here if no SW required
@@ -416,6 +456,7 @@ std::cout << "Matches:" << seedMatches << "\n";
         std::lock_guard<std::mutex> lock(resultsMutex);
         resultsSW.insert(resultsSW.end(), localResultsSW.begin(), localResultsSW.end());
     }
+
 //    std::cout << ((double) startIndex)/chunkSize <<  " maxList: " << maxList << std::endl;
 //    auto end = std::chrono::steady_clock::now();
 //    auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(end - start);
@@ -491,17 +532,20 @@ void intialiseKISS(int argc, char* argv[]) {
     }
 
     // some default values (overide with cmd line arguments, see below)
+    
+
     KMERSIZE = 32;
     MIN_MATCHES = 5;
-    SEED_SKIP = 256;
+    SEED_SKIP = 32;
     THREADS = std::thread::hardware_concurrency();
-    CUTOFF = 100;
+    CUTOFF = 50;
     REFERENCE = "";/* "/Users/geva/Crispr/AMR106.fasta"; */
     READS = ""; /* /Users/geva/CAMDA/MatlabCamda2023/gCSD16_NYC_17_1.fasta" */;
-    OUTPUT_DIR = "save";
+    OUTPUT_DIR = std::string(get_current_dir_name())+ "/save";
     std::string regexPattern = "";  // Example: Match all .fasta files with ".*\\.fasta";
     MATCH_ALL = false;
     GET_SW = true;
+
 
     for (int i = 1; i < argc; ++i) {
         arg = argv[i];
@@ -546,13 +590,21 @@ void intialiseKISS(int argc, char* argv[]) {
     
     std::string rootDir = READS;
     fileNames = getFileNames(rootDir);
+    
+   // check the file exists
+    if (fileNames.empty()) {
+        cerr << "Sample File: " + READS + ", does not exist in this directory " << endl;
+        exit(1);
+    }
+
     // Print the file names
     std::cout << "Processing " << fileNames.size() << " files" << std::endl;
+
         //    for (const auto& fileName : fileNames) {
         //        std::cout << fileName << std::endl;
         //    }
     
-    //ESZTERQ: why be able to set min_matches if the change is over run anyway? 
+    
     MIN_MATCHES = ceil((CUTOFF - KMERSIZE)/(double) SEED_SKIP)+1;
 
     cout << "KISS run parameters" << endl;
@@ -612,4 +664,3 @@ int main(int argc, char *argv[]) {
 
     return 0;
 }
-

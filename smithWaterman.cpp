@@ -159,6 +159,10 @@ std::vector<std::tuple<uint32_t, uint32_t, uint32_t, double, std::string>> getSW
     for (const auto& result : candidate_results) {
         uint32_t sampleIndex, referenceIndex, minPos, maxPos;
         std::tie(sampleIndex, referenceIndex, minPos, maxPos) = result;
+
+// for debugging, print out the result
+// std::cout << "Candidate Result: (" << sampleIndex << ", " << referenceIndex << ", " << minPos << ", " << maxPos << ")" << std::endl;
+
         
         if (currentSample == sampleIndex) {
             if (skipMulti) {
