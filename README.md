@@ -25,14 +25,14 @@ You can customize the search parameters by providing additional options. Here's 
 ```
 
 ### Options
-- `-kmer_size <value>`: Set the k-mer size (default is 31).
+- `-kmer_size <value>`: Set the k-mer size (default is 32).
 - `-min_matches <value>`: Set the minimum number of matches required (default is 2).
-- `-seed_skip <value>`: Set the seed skip value (default is 20).
+- `-seed_skip <value>`: Set the seed skip value, i.e the distance between Kmers (default is 32).
 - `-cut_off <value>`: Set the cutoff value (default is 50).
 - `-reference <reference_file>`: Specify the reference sequence file.
 - `-data <data_file>`: Specify the data sequence file.
-- `-match_all <value>`: match_all indicates whether all matches (true|false), (default is true)
-- `-get_sw <value>`: indicates whether Smith Waterman alignment score is required (true|false),(default is true)
+- `-match_all <value>`: match_all indicates whether all matches (true|false), (default is true).
+- `-get_sw <value>`: indicates whether Smith Waterman alignment score is required (true|false), (default is true).
 
 ## Indexing files
-NOTE: the indexer is from [KISS INDEXER](https://github.com/andrewtrotman/KISS), this version of the indexer does have a bug which has been fixed locally, but indexing is done seperate and the the .idx files can be loaded into the examples folder of the programme so they can be called at run time (if you wish)
+NOTE: the indexer is from [KISS INDEXER](https://github.com/andrewtrotman/KISS), this version of the indexer does have a bug which has been fixed locally, but indexing is done seperate and the the .idx files can be loaded into the examples folder of the programme so they can be called at run time (if you wish).
