@@ -113,6 +113,8 @@ std::string readTextBlobFromFile(const std::string& filename) {
 }
 
 QueryTable readTableFromFile(const std::string& filename) {
+std:: cout << "reading\n";
+
     QueryTable table;
     std::ifstream inFile(filename);
     if (!inFile) {
@@ -127,7 +129,7 @@ QueryTable readTableFromFile(const std::string& filename) {
         std::istringstream iss(line);
         if (iss >> key) {
             value = line.substr(line.find(' ') + 1);
-//            std::cout << key << " : " << value << std::endl;
+           std::cout << key << " : " << value << std::endl;
             table.entries[key] = value;
         }
     }

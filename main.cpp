@@ -321,9 +321,6 @@ void loadSamples(const std::string& fastaFile) {
     FIND MATCHES
  */
 void findMatches(std::string genomeStr, int minMatches, int skip, int startIndex, int endIndex, std::vector<uint32_t>& innerMapBlob, std::vector<uint32_t>& outerMapBlob, uint32_t MASK, int chunkSize) {
-    // Start the timer
-    // auto start = std::chrono::steady_clock::now();
-
     // localResults stores the sample index and matching refID, minPos, maxPos of seeds found
     std::vector<std::tuple<uint32_t, uint32_t, uint32_t, uint32_t>> localResults;
     std::vector<std::tuple<uint32_t, uint32_t, uint32_t, double, std::string>> localResultsSW;
@@ -332,16 +329,6 @@ void findMatches(std::string genomeStr, int minMatches, int skip, int startIndex
 
     for (int32_t i = startIndex; i <= endIndex; ++i)
     {
-    //    int z=95; // debugging
-    //    for (uint32_t i = z; i <= z; ++i)
-    //    {
-    //        if(i==z) {
-    //            std::cout << "i = " << i << std::endl;
-    //            std::cout << sampleSequences[i] << std::endl;
-    //            std::string ref = genomeStr.substr(137105276,151);
-    //            std::cout << ref << std::endl;
-    //        }
-
         // process sample read
         hitSet.clear(); //Clear the set of seed hits.
         int sequenceLength = (int) sampleSequences[i].size(); //Get the length of the current sample sequence.
@@ -356,16 +343,13 @@ void findMatches(std::string genomeStr, int minMatches, int skip, int startIndex
         //std::cout << "sequence length: " << sequenceLength << std::endl;
         //std::cout << "maxMisses: " << maxMisses << std::endl;
 
-
         for (int seedIndex=0; seedIndex < numSeeds; seedIndex++) {
             startPos = seedIndex*skip; // move seed position along
             startPos = (startPos > lastPos) ? lastPos : startPos; // avoid overshoot of last seed
 
-            // Extract a seed (a kmer) from the sample sequence
-// std::cout << startPos << ":" << KMERSIZE << "\n";
-// std::cout << sampleSequences[i] << "\n";
+        // Extract a seed (a kmer) from the sample sequence
             std::string seed = sampleSequences[i].substr(startPos, KMERSIZE);
-// std::cout << "seed:" << seed << "\n";
+ std::cout << "seed:" << seed << "\n";
             uint64_t pkmer = packKmer(seed.c_str());
             pkmer = pkmer ^ reverse_complement(pkmer, KMERSIZE);// canonical kmer
 
@@ -382,24 +366,28 @@ void findMatches(std::string genomeStr, int minMatches, int skip, int startIndex
                  inputSets[seedIndex].insert(innerVector.begin(), innerVector.end()); // insert matches to current seed hits
  
  // for debugging checking accuracy of the matches
-//   std::cout << "Matched Seed: " << seed << ", Input Set: ";
-//         for (const auto &position : inputSets[seedIndex]) {
-//             std::cout << position << " ";
-//         }
-//         std::cout << std::endl;
-
+std::cout << "Matched Seed: " << seed << ", Input Set: ";
+    for (const auto &position : inputSets[seedIndex]) {
+        std::cout << position << " ";
+    }
+std::cout << std::endl;
 
              }
+
+
              else {
                  if ((seedIndex - seedMatches)>maxMisses)
                      break;
              }
         }
 
-std::cout << "Matches:" << seedMatches << "\n";
+//std::cout << "Initial Matches:" << seedMatches << "\n";
          if (seedMatches<MIN_MATCHES)
             continue;// read does not meet minimum seed mathces threshold
         
+        std::cout << "valid input sets: " << inputSets.size() << "\n";
+        std::cout << "last pos: " << lastPos << "\n";
+
         std::vector<std::pair<uint32_t, uint32_t>> validSets = validSpans(inputSets, minMatches, lastPos);
         
         for (const auto& validSet : validSets) {
@@ -412,20 +400,12 @@ std::cout << "Matches:" << seedMatches << "\n";
 
     if (GET_SW) {
         if (localResults.size() >0) {
-            // set Smith Waterman scoring matrix.
-            // this setting gives the number of base matches for best alignment.
             int matchScore = 1;
             int mismatchScore = -1;
             int gapScore = -1;
 
-//for debugging, to print out what is being passed to the smith waterman so i can see where the bug is  
-std::cout << "Local results: " ;
-    for (const auto& tuple : localResults) {
-        std::cout << "(" << std::get<2>(tuple) << ", " << std::get<3>(tuple) << ")";
-    }
-    std::cout << "\n";
 
-            localResultsSW = getSW(genomeStr, localResults, matchScore, mismatchScore, gapScore, CUTOFF);
+    localResultsSW = getSW(genomeStr, localResults, matchScore, mismatchScore, gapScore, CUTOFF);
 
 
 // for debugging print out the Smith-Waterman results
@@ -535,10 +515,10 @@ void intialiseKISS(int argc, char* argv[]) {
     
 
     KMERSIZE = 32;
-    MIN_MATCHES = 5;
+    MIN_MATCHES = 2;
     SEED_SKIP = 32;
-    THREADS = std::thread::hardware_concurrency();
-    CUTOFF = 50;
+    THREADS = 1; //std::thread::hardware_concurrency();
+    CUTOFF = 15;
     REFERENCE = "";/* "/Users/geva/Crispr/AMR106.fasta"; */
     READS = ""; /* /Users/geva/CAMDA/MatlabCamda2023/gCSD16_NYC_17_1.fasta" */;
     OUTPUT_DIR = std::string(get_current_dir_name())+ "/save";
@@ -605,7 +585,7 @@ void intialiseKISS(int argc, char* argv[]) {
         //    }
     
     
-    MIN_MATCHES = ceil((CUTOFF - KMERSIZE)/(double) SEED_SKIP)+1;
+    //MIN_MATCHES = ceil((CUTOFF - KMERSIZE)/(double) SEED_SKIP)+1;
 
     cout << "KISS run parameters" << endl;
     cout << "kmer_size: " << KMERSIZE << endl;

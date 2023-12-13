@@ -327,6 +327,7 @@ std::vector<std::pair<uint32_t, uint32_t>> validSpans(const std::vector<std::set
     for (size_t i = 0; i < numSets; ++i) {
         for (uint32_t pos : inputSets[i]) {
             positions.push_back({pos, i});
+           // std:: cout << "positions: " << pos << " : " << i << "\n";
         }
     }
 
@@ -334,6 +335,10 @@ std::vector<std::pair<uint32_t, uint32_t>> validSpans(const std::vector<std::set
     std::sort(positions.begin(), positions.end(), [](const Position& a, const Position& b) {
         return a.value < b.value;
     });
+
+    // for (const auto &p : positions ){
+    //     std:: cout << "positions: " << p.value << ": " << p.inputSetIndex << "\n";
+    // }
 
     // Initialize counts for each set to 0
     std::vector<int> counts(numSets, 0);
@@ -344,18 +349,8 @@ std::vector<std::pair<uint32_t, uint32_t>> validSpans(const std::vector<std::set
     while (startPos < positions.size()) {
         if (endPos < positions.size() && positions[endPos].value - positions[startPos].value <= lastPos) {
             counts[positions[endPos].inputSetIndex]++;
-
-
-// std::cout << "isValid: " << isValid(counts, minMatches) << std:: endl; 
-
             // Check if the current configuration of counts satisfies the condition N
-            if (isValid(counts, minMatches)) {
-        
-                // push start and end of range
-//                std::cout << positions[startPos].value+1 << " : " << positions[endPos].value
-//                     << " (" << positions[endPos].value-positions[startPos].value+KMERSIZE
-//                     << ")" << std::endl;
-
+            if (isValid(counts, minMatches)) {        
                 // If valid, collect the start and end positions of the range
                 if (positions[endPos].value-positions[startPos].value+KMERSIZE >= CUTOFF) {
                     // TODO: check coverage against cutoff

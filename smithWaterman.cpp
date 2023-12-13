@@ -13,7 +13,6 @@
  */
 
 extern unsigned int KMERSIZE;
-extern int CUTOFF;
 extern bool MATCH_ALL; // find all mathces flag
 extern std::vector<std::string> sampleSequences;
 
@@ -192,7 +191,7 @@ std::vector<std::tuple<uint32_t, uint32_t, uint32_t, double, std::string>> getSW
         std::pair<int, int> res;
         alignSequences(referenceSequence, sampleSequence, cigar, swScore, refBegin, refEnd);
         res = computeScoreAndLength(cigar);
-        swScore = res.first; // note - we replace the swScore from alignSequences() with that derived from cigar
+        // swScore = res.first; // note - we replace the swScore from alignSequences() with that derived from cigar
         if (swScore < cutoff) {
             // match in reverse direction
             alignSequences(referenceSequence, reverseComplement(sampleSequence), cigar, swScore, refBegin, refEnd);
@@ -205,7 +204,7 @@ std::vector<std::tuple<uint32_t, uint32_t, uint32_t, double, std::string>> getSW
  
         // Store the result index pair and the SW score in the resultsSW vector
 
-        if (swScore>=CUTOFF) {
+        if (swScore >= cutoff) {
             double score = ((double) swScore)/swLength;
             localResultsSW.push_back(std::make_tuple(sampleIndex, refBegin, refEnd, score, cigar));
             if (!MATCH_ALL) {
