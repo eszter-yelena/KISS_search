@@ -18,13 +18,13 @@ example
 ```bash
 ./KISS.out -reference examples/hpvcomplete.fasta -data examples/hpvE6.fasta
 ```
-## Modification Example
+## Setting values
 You can customize the search parameters by providing additional options. Here's an example:
 ```bash
 ./KISS.out -kmer_size 32 -min_matches 3 -seed_skip 30 -cut_off 100 -reference examples/P_falciprum.fna -data examples/P_vivax.fna
 ```
 
-## Options
+### Options
 - `-kmer_size <value>`: Set the k-mer size (default is 31).
 - `-min_matches <value>`: Set the minimum number of matches required (default is 2).
 - `-seed_skip <value>`: Set the seed skip value (default is 20).
