@@ -34,5 +34,5 @@ You can customize the search parameters by providing additional options. Here's 
 - `-match_all <value>`: match_all indicates whether all matches (true|false), (default is true)
 - `-get_sw <value>`: indicates whether Smith Waterman alignment score is required (true|false),(default is true)
 
-##Indexing files
-NOTE: the indexer is from [a link](https://github.com/andrewtrotman/KISS), this version of the indexer does have a bug which has been fixed locally, but indexing is done seperate and the the .idx files can be loaded into the examples folder of the programme so they can be called at run time (if you wish)
+## Indexing files
+NOTE: the indexer is from [KISS INDEXER](https://github.com/andrewtrotman/KISS), this version of the indexer does have a bug which has been fixed locally, but indexing is done seperate and the the .idx files can be loaded into the examples folder of the programme so they can be called at run time (if you wish)
