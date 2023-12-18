@@ -1,0 +1,21 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "Run KISS",
+            "type": "cppdbg",
+            "request": "launch",
+            "program": "${workspaceFolder}/KISS.out",
+            "args": [
+                "-reference", "examples/test.fasta",
+                "-data", "examples/testsequence.fasta"
+            ],
+            "stopAtEntry": true,
+            "cwd": "${workspaceFolder}",
+            "environment": [],
+            "externalConsole": false,
+            "MIMode": "gdb",
+            "miDebuggerPath": "/usr/bin/gdb"
+        }
+    ]
+}

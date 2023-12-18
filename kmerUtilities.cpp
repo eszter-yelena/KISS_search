@@ -455,7 +455,7 @@ std::vector<std::pair<uint32_t, uint32_t>> validate_sets(std::vector<std::set<ui
             uint32_t firstValue = *sorted_sets.front().begin();
 
         // check if last minus first is in range and add it to the results, and remove the range once it has been added
-            if (lastValue - firstValue <= query_length) {
+            if (lastValue - firstValue < query_length) {
                 results_vector.emplace_back(firstValue, lastValue);
                 
                 for (auto& set : sorted_sets) {
