@@ -6,6 +6,7 @@
 //
 
 #include "kmerUtilities.hpp"
+#include <climits>
 
 extern unsigned int KMERSIZE;
 extern int CUTOFF;
@@ -421,3 +422,57 @@ uint32_t getSpan(const std::vector<Position>& pos, uint32_t span) {
     return totalSpan;
 }
 
+/* 
+    SORT VECTORS FUNCTION
+*/
+// Function to sort sets based on their first elements
+std::vector<std::set<uint32_t>> sort_sets(const std::vector<std::set<uint32_t>>& input_sets) {
+    std::vector<std::set<uint32_t>> sorted_sets = input_sets;
+
+    // Sort based on the first element of each set
+    std::sort(sorted_sets.begin(), sorted_sets.end(), [](const std::set<uint32_t>& a, const std::set<uint32_t>& b) {
+        return *a.begin() < *b.begin();
+    });
+
+    return sorted_sets;
+}
+
+std::vector<std::pair<uint32_t, uint32_t>> validate_sets(std::vector<std::set<uint32_t>>& input_sets, uint32_t min_matches, uint32_t query_length) {
+    std::vector<std::pair<uint32_t, uint32_t>> results_vector;
+
+    if (input_sets.size() >= min_matches) {
+        // Add UINT_MAX to the end of each set
+        for (auto& set : input_sets) {
+            set.insert(UINT_MAX);
+        }
+        
+        // sort the sets based on the first element
+        std::vector<std::set<uint32_t>> sorted_sets = sort_sets(input_sets);
+    
+        // while the value of the sorted list at min_matches is not UINT_MAX
+        while ( *std::next(sorted_sets.begin(), min_matches)->begin() != UINT_MAX) {
+            uint32_t lastValue = *sorted_sets.back().begin();
+            uint32_t firstValue = *sorted_sets.front().begin();
+
+        // check if last minus first is in range and add it to the results, and remove the range once it has been added
+            if (lastValue - firstValue <= query_length) {
+                results_vector.emplace_back(firstValue, lastValue);
+                
+                for (auto& set : sorted_sets) {
+                    set.erase(set.begin());
+                }
+            } 
+            
+        // else remove the first value of the first ordered set and review
+            else {
+                sorted_sets.front().erase(sorted_sets.front().begin());
+            }
+
+            sorted_sets = sort_sets(sorted_sets);
+        }
+
+    }
+
+   
+    return results_vector;
+}

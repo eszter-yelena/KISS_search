@@ -16,6 +16,7 @@ std::vector<std::string> sampleSequences;
 std::vector<std::tuple<int, int, int, int>> results;  // Vector to store the matching results
 std::mutex resultsMutex; // Mutex to protect concurrent writes to the results vector
 std::vector<std::string> fileNames;
+uint32_t query_length;
 std::vector<std::tuple<uint32_t, uint32_t, uint32_t, double, std::string>> resultsSW; // match results after Smith Waterman alignment
 
 // some global default values (overide with cmd line arguments)
@@ -239,7 +240,6 @@ void getReference(std::string inputFile,
     } else {
         MASK = (1 << numBitsToKeep) - 1;
     }
-//    std::cout << "MASK: " << std::hex << MASK << std::dec << std::endl;
 }
 
 
@@ -306,6 +306,8 @@ void loadSamples(const std::string& fastaFile) {
          if (sequence.size() > maxLen) maxLen= (int) sequence.size();
      }
 
+    query_length = sequence.length();
+    
     free(data);
     // Stop the timer
     auto end = std::chrono::steady_clock::now();
@@ -339,9 +341,7 @@ void findMatches(std::string genomeStr, int minMatches, int skip, int startIndex
         int maxMisses = numSeeds - MIN_MATCHES; // maximum allowed misses before skipping the rest of the seeds.
         std::string prevSeed; //String variable to store the previous seed
         int startPos; // The starting position for the current seed
- 
-        //std::cout << "sequence length: " << sequenceLength << std::endl;
-        //std::cout << "maxMisses: " << maxMisses << std::endl;
+
 
         for (int seedIndex=0; seedIndex < numSeeds; seedIndex++) {
             startPos = seedIndex*skip; // move seed position along
@@ -349,7 +349,6 @@ void findMatches(std::string genomeStr, int minMatches, int skip, int startIndex
 
         // Extract a seed (a kmer) from the sample sequence
             std::string seed = sampleSequences[i].substr(startPos, KMERSIZE);
- std::cout << "seed:" << seed << "\n";
             uint64_t pkmer = packKmer(seed.c_str());
             pkmer = pkmer ^ reverse_complement(pkmer, KMERSIZE);// canonical kmer
 
@@ -360,20 +359,11 @@ void findMatches(std::string genomeStr, int minMatches, int skip, int startIndex
 
             // Lookup the seed matches in the kMerMap
             std::vector<uint32_t> innerVector = getInnerVector(innerMapBlob, outerMapBlob, kmerHash);
-// std::cout << "innerVector empty:" << innerVector.empty() << "\n";
              if (!innerVector.empty()) {
                  seedMatches++; // here if seed has matches (positions in the genome)
                  inputSets[seedIndex].insert(innerVector.begin(), innerVector.end()); // insert matches to current seed hits
- 
- // for debugging checking accuracy of the matches
-std::cout << "Matched Seed: " << seed << ", Input Set: ";
-    for (const auto &position : inputSets[seedIndex]) {
-        std::cout << position << " ";
-    }
-std::cout << std::endl;
 
              }
-
 
              else {
                  if ((seedIndex - seedMatches)>maxMisses)
@@ -381,22 +371,20 @@ std::cout << std::endl;
              }
         }
 
-//std::cout << "Initial Matches:" << seedMatches << "\n";
          if (seedMatches<MIN_MATCHES)
             continue;// read does not meet minimum seed mathces threshold
         
-        std::cout << "valid input sets: " << inputSets.size() << "\n";
-        std::cout << "last pos: " << lastPos << "\n";
+        //std::vector<std::pair<uint32_t, uint32_t>> validSets = validSpans(inputSets, minMatches, lastPos);
+        std::vector<std::pair<uint32_t, uint32_t>> validSets = validate_sets(inputSets, minMatches, query_length);
+        std::cout << "input sets: " << inputSets.size() << "\n";
+        std::cout << "valid sets: " << validSets.size() << "\n";
 
-        std::vector<std::pair<uint32_t, uint32_t>> validSets = validSpans(inputSets, minMatches, lastPos);
         
         for (const auto& validSet : validSets) {
             localResults.push_back(std::make_tuple(i, validSet.first, validSet.first, validSet.second));
         }
     }
     
-    // std::cout << "localResults: " << localResults.size() << std::endl;
-    // bool CALCSW = true; // flag indicating if SW is required
 
     if (GET_SW) {
         if (localResults.size() >0) {
@@ -405,18 +393,8 @@ std::cout << std::endl;
             int gapScore = -1;
 
 
-    localResultsSW = getSW(genomeStr, localResults, matchScore, mismatchScore, gapScore, CUTOFF);
-
-
-// for debugging print out the Smith-Waterman results
- std::cout << "\nSmith-Waterman results: ";
-    for (const auto &swResult : localResultsSW) {
-      std::cout << "(" << std::get<0>(swResult) << ", " << std::get<1>(swResult) << ", " << std::get<2>(swResult) << ", " << std::get<3>(swResult) << ", " << std::get<4>(swResult) << ")";
-    }
-      std::cout << std::endl;
-
+            localResultsSW = getSW(genomeStr, localResults, matchScore, mismatchScore, gapScore, CUTOFF);
         }
-        
     }
 
     else
@@ -430,19 +408,11 @@ std::cout << std::endl;
         }
     }
     
-    // std::cout << ((double) startIndex)/chunkSize << " After SW: " << localResultsSW.size() << std::endl;
-    // Merge local results into global results vector
     if (localResultsSW.size() >0) {
         std::lock_guard<std::mutex> lock(resultsMutex);
         resultsSW.insert(resultsSW.end(), localResultsSW.begin(), localResultsSW.end());
     }
 
-//    std::cout << ((double) startIndex)/chunkSize <<  " maxList: " << maxList << std::endl;
-//    auto end = std::chrono::steady_clock::now();
-//    auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(end - start);
-//    int minutes = (int) duration.count() / (1000 * 60);
-//    float seconds = ((duration.count() - minutes * 1000 * (float) 60))/1000;
-//    std::cout << endl << ((double) startIndex)/chunkSize <<  " " << "Total time: " << minutes << " min " << seconds << " sec" << std::endl;
 }
 
 
@@ -516,7 +486,7 @@ void intialiseKISS(int argc, char* argv[]) {
 
     KMERSIZE = 32;
     MIN_MATCHES = 2;
-    SEED_SKIP = 32;
+    SEED_SKIP = 1;
     THREADS = 1; //std::thread::hardware_concurrency();
     CUTOFF = 15;
     REFERENCE = "";/* "/Users/geva/Crispr/AMR106.fasta"; */
@@ -627,8 +597,6 @@ int main(int argc, char *argv[]) {
     for (size_t i = startIndex; i < fileNames.size(); ++i) {
         const std::string& filename = fileNames[i];
         std::cout << i << " ******** processing " << filename << " ********" << std::endl;
-        // Process the current file
-        // Start the timer
         resultsSW.clear();
         sampleSequences.clear();
         loadSamples(filename); // load the reads (to be filtered against the reference)
