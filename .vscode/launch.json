@@ -7,10 +7,10 @@
             "request": "launch",
             "program": "${workspaceFolder}/KISS.out",
             "args": [
-                "-reference", "examples/hpvE6.fasta",
-                "-data", "examples/hpvE6.fasta"
+                "-reference", "examples/test.fasta",
+                "-data", "examples/testsequence.fasta"
             ],
-            "stopAtEntry": false,
+            "stopAtEntry": true,
             "cwd": "${workspaceFolder}",
             "environment": [],
             "externalConsole": false,
