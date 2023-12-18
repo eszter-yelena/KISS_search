@@ -452,6 +452,7 @@ std::vector<std::pair<uint32_t, uint32_t>> validate_sets(std::vector<std::set<ui
         // while the value of the sorted list at min_matches is not UINT_MAX
         while ( *std::next(sorted_sets.begin(), min_matches)->begin() != UINT_MAX) {
             uint32_t lastValue = *sorted_sets.back().begin();
+            uint32_t minmatchesValue = *std::next(sorted_sets.begin(), min_matches)->begin(); 
             uint32_t firstValue = *sorted_sets.front().begin();
 
         // check if last minus first is in range and add it to the results, and remove the range once it has been added

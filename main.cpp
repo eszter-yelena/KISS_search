@@ -375,7 +375,7 @@ void findMatches(std::string genomeStr, int minMatches, int skip, int startIndex
             continue;// read does not meet minimum seed mathces threshold
         
         //std::vector<std::pair<uint32_t, uint32_t>> validSets = validSpans(inputSets, minMatches, lastPos);
-        std::vector<std::pair<uint32_t, uint32_t>> validSets = validate_sets(inputSets, minMatches, query_length);
+        std::vector<std::pair<uint32_t, uint32_t>> validSets = validate_sets(inputSets, minMatches, lastPos);
         std::cout << "input sets: " << inputSets.size() << "\n";
         std::cout << "valid sets: " << validSets.size() << "\n";
 
@@ -419,7 +419,7 @@ void findMatches(std::string genomeStr, int minMatches, int skip, int startIndex
 /*
     PAR FIND MATCHES
  */
-void parFindMatches(int N, int M, int numThreads,
+void parFindMatches(int min_matches, int seed_skip, int numThreads,
                     std::vector<uint32_t>& innerMapBlob,
                     std::vector<uint32_t>& outerMapBlob,
                     std::string genomeStr,
@@ -435,7 +435,7 @@ void parFindMatches(int N, int M, int numThreads,
         startIndex = i * chunkSize;
         endIndex = (i == numThreads - 1) ? (int) sampleSequences.size() - 1 : (int) (startIndex + chunkSize - 1);
 
-         threads.emplace_back(findMatches, genomeStr, N, M, startIndex, endIndex, std::ref(innerMapBlob), std::ref(outerMapBlob), MASK, chunkSize);
+         threads.emplace_back(findMatches, genomeStr, min_matches, seed_skip, startIndex, endIndex, std::ref(innerMapBlob), std::ref(outerMapBlob), MASK, chunkSize);
     }
 
     // Wait for all threads to finish
@@ -485,9 +485,9 @@ void intialiseKISS(int argc, char* argv[]) {
     
 
     KMERSIZE = 32;
-    MIN_MATCHES = 2;
+    MIN_MATCHES = 5;
     SEED_SKIP = 1;
-    THREADS = 1; //std::thread::hardware_concurrency();
+    THREADS = std::thread::hardware_concurrency();
     CUTOFF = 15;
     REFERENCE = "";/* "/Users/geva/Crispr/AMR106.fasta"; */
     READS = ""; /* /Users/geva/CAMDA/MatlabCamda2023/gCSD16_NYC_17_1.fasta" */;

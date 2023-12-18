@@ -7,8 +7,8 @@
             "request": "launch",
             "program": "${workspaceFolder}/KISS.out",
             "args": [
-                "-reference", "examples/test.fasta",
-                "-data", "examples/testsequence.fasta"
+                "-reference", "examples/poliovirus.fasta",
+                "-data", "examples/poliovirus5UTR.fasta"
             ],
             "stopAtEntry": true,
             "cwd": "${workspaceFolder}",
