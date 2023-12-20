@@ -375,15 +375,15 @@ void findMatches(std::string genomeStr, int minMatches, int skip, int startIndex
          if (seedMatches<MIN_MATCHES)
             continue;// read does not meet minimum seed mathces threshold
 
-        for (int i = 0; i < numSeeds; ++i) {
-        std::cout << "Set " << i + 1 << ": ";
-        for (const auto& element : inputSets[i]) {
-            std::cout << element << " ";
-        }
-        std::cout << std::endl;
-    }
+//print out the sets
+    //     for (int i = 0; i < numSeeds; ++i) {
+    //     std::cout << "Set " << i + 1 << ": ";
+    //     for (const auto& element : inputSets[i]) {
+    //         std::cout << element << " ";
+    //     }
+    //     std::cout << std::endl;
+    // }
         std::cout << "input sets: " << inputSets.size() << "\n";
-
         //std::vector<std::pair<uint32_t, uint32_t>> validSets = validSpans(inputSets, minMatches, lastPos);
         std::vector<std::pair<uint32_t, uint32_t>> validSets = validate_sets(inputSets, minMatches, lastPos);
         std::cout << "valid sets: " << validSets.size() << "\n";
