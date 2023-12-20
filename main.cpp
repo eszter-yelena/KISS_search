@@ -290,7 +290,7 @@ void loadSamples(const std::string& fastaFile) {
              newLine = strchr(nextCharacter,'\0'); // find end of data
              line.assign(nextCharacter, newLine);
              sequence += line;
-             sampleSequences.push_back(sequence); // push last sequence
+             //sampleSequences.push_back(sequence); // push last sequence
              break;
          }
 
@@ -362,7 +362,7 @@ void findMatches(std::string genomeStr, int minMatches, int skip, int startIndex
              if (!innerVector.empty()) {
                  seedMatches++; // here if seed has matches (positions in the genome)
                  inputSets[seedIndex].insert(innerVector.begin(), innerVector.end()); // insert matches to current seed hits
-
+                 //std::cout<<"seed: " << seed << "matched seed: " << std::endl;
              }
 
              else {
@@ -371,12 +371,21 @@ void findMatches(std::string genomeStr, int minMatches, int skip, int startIndex
              }
         }
 
+        inputSets.resize(seedMatches);
          if (seedMatches<MIN_MATCHES)
             continue;// read does not meet minimum seed mathces threshold
-        
+
+        for (int i = 0; i < numSeeds; ++i) {
+        std::cout << "Set " << i + 1 << ": ";
+        for (const auto& element : inputSets[i]) {
+            std::cout << element << " ";
+        }
+        std::cout << std::endl;
+    }
+        std::cout << "input sets: " << inputSets.size() << "\n";
+
         //std::vector<std::pair<uint32_t, uint32_t>> validSets = validSpans(inputSets, minMatches, lastPos);
         std::vector<std::pair<uint32_t, uint32_t>> validSets = validate_sets(inputSets, minMatches, lastPos);
-        std::cout << "input sets: " << inputSets.size() << "\n";
         std::cout << "valid sets: " << validSets.size() << "\n";
 
         
@@ -486,7 +495,7 @@ void intialiseKISS(int argc, char* argv[]) {
 
     KMERSIZE = 32;
     MIN_MATCHES = 5;
-    SEED_SKIP = 1;
+    SEED_SKIP = 32;
     THREADS = std::thread::hardware_concurrency();
     CUTOFF = 15;
     REFERENCE = "";/* "/Users/geva/Crispr/AMR106.fasta"; */
@@ -549,11 +558,6 @@ void intialiseKISS(int argc, char* argv[]) {
 
     // Print the file names
     std::cout << "Processing " << fileNames.size() << " files" << std::endl;
-
-        //    for (const auto& fileName : fileNames) {
-        //        std::cout << fileName << std::endl;
-        //    }
-    
     
     //MIN_MATCHES = ceil((CUTOFF - KMERSIZE)/(double) SEED_SKIP)+1;
 
