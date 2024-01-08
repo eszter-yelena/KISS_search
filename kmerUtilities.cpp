@@ -425,6 +425,7 @@ uint32_t getSpan(const std::vector<Position>& pos, uint32_t span) {
 /* 
     SORT VECTORS FUNCTION
 */
+
 // Function to sort sets based on their first elements
 std::vector<std::set<uint32_t>> sort_sets(const std::vector<std::set<uint32_t>>& input_sets) {
     std::vector<std::set<uint32_t>> sorted_sets;
@@ -439,7 +440,7 @@ std::vector<std::set<uint32_t>> sort_sets(const std::vector<std::set<uint32_t>>&
         return *a.begin() < *b.begin();
     });
 
-
+    
     return sorted_sets;
 }
 
@@ -447,27 +448,31 @@ std::vector<std::pair<uint32_t, uint32_t>> validate_sets(std::vector<std::set<ui
     std::vector<std::pair<uint32_t, uint32_t>> results_vector;
 
     if (input_sets.size() >= min_matches) {
-       
+     
         // sort the sets based on the first element
         std::vector<std::set<uint32_t>> sorted_sets = sort_sets(input_sets);
+        
         uint32_t end_span_value = 0;
-    
- // while the value of the sorted list at min_matches is not empty
-    while (sorted_sets.size() >= min_matches && !sorted_sets[min_matches - 1].empty()) {            
-    sorted_sets.erase(std::remove_if(sorted_sets.begin(), sorted_sets.end(), [](const std::set<uint32_t>& s) { return s.empty(); }), sorted_sets.end());
 
+        // while the value of the sorted list at min_matches is not empty
+        while (sorted_sets.size() >= min_matches && !sorted_sets[min_matches - 1].empty()) {  
+            sorted_sets.erase(std::remove_if(sorted_sets.begin(), sorted_sets.end(), [](const std::set<uint32_t>& s) { return s.empty(); }), sorted_sets.end());
+
+            // sorted_sets.erase(std::remove_if(sorted_sets.begin(), sorted_sets.end(), [](const std::set<uint32_t>& s) { return s.empty(); }), sorted_sets.end());
             uint32_t lastValue = *sorted_sets.back().begin();
             uint32_t minmatchesValue = *std::next(sorted_sets.begin(), min_matches-1)->begin();
             uint32_t firstValue = *sorted_sets.front().begin();
             
-
+            // if the first value is less than the previous largest value remove that set
             if (firstValue < end_span_value){
                 for (auto& set : sorted_sets) {
                     set.erase(set.begin());
                 }
+            sorted_sets.erase(std::remove_if(sorted_sets.begin(), sorted_sets.end(), [](const std::set<uint32_t>& s) { return s.empty(); }), sorted_sets.end());
             }
+
             // check if last minus first is in range and add it to the results, and remove the range once it has been added
-            else if (minmatchesValue - firstValue <= query_length ) {
+             if (minmatchesValue - firstValue <= query_length ) {
                 results_vector.emplace_back(firstValue, lastValue);
                 
                 for (auto& set : sorted_sets) {
@@ -477,11 +482,9 @@ std::vector<std::pair<uint32_t, uint32_t>> validate_sets(std::vector<std::set<ui
 
             // else remove the first value of the first ordered set and review
             else {
-                std:: cout << minmatchesValue<< std::endl;
-                std:: cout <<firstValue << std::endl;
                 sorted_sets.front().erase(sorted_sets.front().begin());
             }
-            
+            //set the end value and resort the sets
             end_span_value = minmatchesValue;
             sorted_sets = sort_sets(sorted_sets);
         }

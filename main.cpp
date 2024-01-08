@@ -290,7 +290,7 @@ void loadSamples(const std::string& fastaFile) {
              newLine = strchr(nextCharacter,'\0'); // find end of data
              line.assign(nextCharacter, newLine);
              sequence += line;
-             //sampleSequences.push_back(sequence); // push last sequence
+            //  sampleSequences.push_back(sequence); // push last sequence
              break;
          }
 
@@ -347,21 +347,43 @@ void findMatches(std::string genomeStr, int minMatches, int skip, int startIndex
             startPos = seedIndex*skip; // move seed position along
             startPos = (startPos > lastPos) ? lastPos : startPos; // avoid overshoot of last seed
 
+
         // Extract a seed (a kmer) from the sample sequence
             std::string seed = sampleSequences[i].substr(startPos, KMERSIZE);
             uint64_t pkmer = packKmer(seed.c_str());
+            auto pkmer_1_for_print = pkmer;
+
             pkmer = pkmer ^ reverse_complement(pkmer, KMERSIZE);// canonical kmer
+            auto pkmer_2_for_print = pkmer;
 
             if (MASK<UINT32_MAX)
                 kmerHash = murmurHash3(pkmer) & MASK;
             else
                 kmerHash = murmurHash3(pkmer);
 
+            auto kmerhash_for_print = kmerHash;
+            auto MASK_for_print = MASK;
+
+
             // Lookup the seed matches in the kMerMap
             std::vector<uint32_t> innerVector = getInnerVector(innerMapBlob, outerMapBlob, kmerHash);
              if (!innerVector.empty()) {
+                // static int count = 0;
+                // count++;
+                // if (count  ==  91 || count == 88 || count == 85 || count == 97){
+                //     std::cout << pkmer_1_for_print <<  " " << pkmer_2_for_print << " " << kmerhash_for_print << " " << MASK_for_print << "\n";
+                //     std::cout << "NOT EMPTY " << count << "hash:" << kmerHash << " from " << seed << "\n";
+                //     for (const auto& element : innerVector) {
+                //         std::cout << element << " ";
+                //      }
+                //      std::cout << std::endl;
+                    
+                // }
+                
+
                  seedMatches++; // here if seed has matches (positions in the genome)
                  inputSets[seedIndex].insert(innerVector.begin(), innerVector.end()); // insert matches to current seed hits
+                 inputSets[seedIndex].insert(UINT32_MAX);
                  //std::cout<<"seed: " << seed << "matched seed: " << std::endl;
              }
 
@@ -376,13 +398,15 @@ void findMatches(std::string genomeStr, int minMatches, int skip, int startIndex
             continue;// read does not meet minimum seed mathces threshold
 
 //print out the sets
-    //     for (int i = 0; i < numSeeds; ++i) {
-    //     std::cout << "Set " << i + 1 << ": ";
-    //     for (const auto& element : inputSets[i]) {
-    //         std::cout << element << " ";
-    //     }
-    //     std::cout << std::endl;
-    // }
+        // for (int i = 0; i < 100; ++i) {
+        //     std::cout << "Set " << i + 1 << ": ";
+        //     for (const auto& element : inputSets[i]) {
+        //         std::cout << element << " ";
+        //     }
+        //     std::cout << std::endl;
+        //  }
+
+
         std::cout << "input sets: " << inputSets.size() << "\n";
         //std::vector<std::pair<uint32_t, uint32_t>> validSets = validSpans(inputSets, minMatches, lastPos);
         std::vector<std::pair<uint32_t, uint32_t>> validSets = validate_sets(inputSets, minMatches, lastPos);
@@ -392,8 +416,16 @@ void findMatches(std::string genomeStr, int minMatches, int skip, int startIndex
         for (const auto& validSet : validSets) {
             localResults.push_back(std::make_tuple(i, validSet.first, validSet.first, validSet.second));
         }
+        // std::cout << "pushed back" << std::endl;
+            
+        //     for (const auto& result : localResults) {
+        //         std::cout << "Value1: " << std::get<0>(result) << std::endl;
+        //         std::cout << "Value2: " << std::get<1>(result) << std::endl;
+        //         std::cout << "Value4: " << std::get<3>(result)<< std::endl;
+        //         std::cout << "-------------------------" << std::endl;
+        //     }
     }
-    
+                
 
     if (GET_SW) {
         if (localResults.size() >0) {
@@ -401,7 +433,7 @@ void findMatches(std::string genomeStr, int minMatches, int skip, int startIndex
             int mismatchScore = -1;
             int gapScore = -1;
 
-
+            std::cout << "get sw" << std::endl;
             localResultsSW = getSW(genomeStr, localResults, matchScore, mismatchScore, gapScore, CUTOFF);
         }
     }
@@ -418,6 +450,7 @@ void findMatches(std::string genomeStr, int minMatches, int skip, int startIndex
     }
     
     if (localResultsSW.size() >0) {
+        std::cout << "insert results" << std::endl;
         std::lock_guard<std::mutex> lock(resultsMutex);
         resultsSW.insert(resultsSW.end(), localResultsSW.begin(), localResultsSW.end());
     }
@@ -546,6 +579,12 @@ void intialiseKISS(int argc, char* argv[]) {
     kmer_encoding_table[(size_t)'C'] = 1;
     kmer_encoding_table[(size_t)'G'] = 2;
     kmer_encoding_table[(size_t)'T'] = 3;
+
+    kmer_encoding_table[(size_t)'a'] = 0;
+    kmer_encoding_table[(size_t)'c'] = 1;
+    kmer_encoding_table[(size_t)'g'] = 2;
+    kmer_encoding_table[(size_t)'t'] = 3;
+
     
     std::string rootDir = READS;
     fileNames = getFileNames(rootDir);
