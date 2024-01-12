@@ -7,6 +7,7 @@
 
 #include "kmerUtilities.hpp"
 #include <climits>
+#include <limits>
 
 extern unsigned int KMERSIZE;
 extern int CUTOFF;
@@ -296,10 +297,6 @@ void displayProgress(uint64_t current, uint64_t total, int desiredUpdateInterval
      */
 }
 
-//struct Position {
-//    uint32_t value;
-//    size_t inputSetIndex;
-//};
 
 /*
     isVALID
@@ -328,7 +325,6 @@ std::vector<std::pair<uint32_t, uint32_t>> validSpans(const std::vector<std::set
     for (size_t i = 0; i < numSets; ++i) {
         for (uint32_t pos : inputSets[i]) {
             positions.push_back({pos, i});
-           // std:: cout << "positions: " << pos << " : " << i << "\n";
         }
     }
 
@@ -425,70 +421,62 @@ uint32_t getSpan(const std::vector<Position>& pos, uint32_t span) {
 /* 
     SORT VECTORS FUNCTION
 */
-
-// Function to sort sets based on their first elements
-std::vector<std::set<uint32_t>> sort_sets(const std::vector<std::set<uint32_t>>& input_sets) {
-    std::vector<std::set<uint32_t>> sorted_sets;
-    
-    for (const auto& s : input_sets) {
-        if (!s.empty()) {
-            sorted_sets.push_back(s);
-        }
-    }
-
-    std::sort(sorted_sets.begin(), sorted_sets.end(), [](const std::set<uint32_t>& a, const std::set<uint32_t>& b) {
-        return *a.begin() < *b.begin();
-    });
-
-    
-    return sorted_sets;
+void sort_positions(std::vector<store_position> &input_positions) {
+    std::sort(input_positions.begin(), input_positions.end(),
+              [](const store_position &a, const store_position &b) {
+                  return a.ptr[a.position] < b.ptr[b.position];
+              });
 }
 
-std::vector<std::pair<uint32_t, uint32_t>> validate_sets(std::vector<std::set<uint32_t>>& input_sets, uint32_t min_matches, uint32_t query_length) {
+/* 
+    VALIDATE VECTORS FUNCTION
+*/
+std::vector<std::pair<uint32_t, uint32_t>> validate_sets(std::vector<store_position> &positions, uint32_t min_matches, uint32_t query_length){
     std::vector<std::pair<uint32_t, uint32_t>> results_vector;
+   
+    if (positions.size() >= min_matches)
+    {
+        sort_positions(positions);
+        // for (size_t x = 1; x < positions.size(); x++)
+        //     if (positions[x].ptr[0] == positions[x-1].ptr[0])
+        //         std::cout << "duplicate:" << positions[x].ptr[0] << std::endl;
+        // exit(0);
+        uint32_t firstValue = *positions[0].ptr;
+        uint32_t minMatchesValue = *positions[min_matches - 1].ptr;
 
-    if (input_sets.size() >= min_matches) {
-     
-        // sort the sets based on the first element
-        std::vector<std::set<uint32_t>> sorted_sets = sort_sets(input_sets);
-        
-        uint32_t end_span_value = 0;
+       do 
+        {
+            if (minMatchesValue - firstValue <= query_length) 
+            {
+                results_vector.emplace_back(firstValue, minMatchesValue);
 
-        // while the value of the sorted list at min_matches is not empty
-        while (sorted_sets.size() >= min_matches && !sorted_sets[min_matches - 1].empty()) {  
-            sorted_sets.erase(std::remove_if(sorted_sets.begin(), sorted_sets.end(), [](const std::set<uint32_t>& s) { return s.empty(); }), sorted_sets.end());
+                // for (const auto &sp : positions)
+                //     std::cout << "A.value: " << sp.ptr[sp.position] << std::endl;
 
-            // sorted_sets.erase(std::remove_if(sorted_sets.begin(), sorted_sets.end(), [](const std::set<uint32_t>& s) { return s.empty(); }), sorted_sets.end());
-            uint32_t lastValue = *sorted_sets.back().begin();
-            uint32_t minmatchesValue = *std::next(sorted_sets.begin(), min_matches-1)->begin();
-            uint32_t firstValue = *sorted_sets.front().begin();
+                for (auto &sp : positions)
+                    if (sp.ptr[sp.position] <= minMatchesValue)
+                        sp.position = static_cast<uint32_t>(std::lower_bound(sp.ptr + sp.position, sp.ptr + sp.size, minMatchesValue) - sp.ptr);
+            }
+
+            else 
+            {
+                uint32_t minValueToReach = minMatchesValue - query_length;
+
+                for (auto &sp : positions)
+                    if (sp.ptr[sp.position] != UINT32_MAX)
+                        sp.position = static_cast<uint32_t>(std::lower_bound(sp.ptr + sp.position, sp.ptr + sp.size, minValueToReach) - sp.ptr);
+            }
             
-            // if the first value is less than the previous largest value remove that set
-            if (firstValue < end_span_value){
-                for (auto& set : sorted_sets) {
-                    set.erase(set.begin());
-                }
-            sorted_sets.erase(std::remove_if(sorted_sets.begin(), sorted_sets.end(), [](const std::set<uint32_t>& s) { return s.empty(); }), sorted_sets.end());
-            }
+            sort_positions(positions);
+            firstValue = positions[0].ptr[positions[0].position];
+            minMatchesValue = positions[min_matches - 1].ptr[positions[min_matches - 1].position];
+            // printf("%d:%p %d:%p \n", 0, positions[0].ptr, min_matches - 1, positions[min_matches - 1].ptr);
+        } 
 
-            // check if last minus first is in range and add it to the results, and remove the range once it has been added
-             if (minmatchesValue - firstValue <= query_length ) {
-                results_vector.emplace_back(firstValue, lastValue);
-                
-                for (auto& set : sorted_sets) {
-                    set.erase(set.begin());
-                }
-            }
+        while (minMatchesValue != UINT32_MAX);
 
-            // else remove the first value of the first ordered set and review
-            else {
-                sorted_sets.front().erase(sorted_sets.front().begin());
-            }
-            //set the end value and resort the sets
-            end_span_value = minmatchesValue;
-            sorted_sets = sort_sets(sorted_sets);
-        }
+        // for (const auto &sp : positions)
+        //     std::cout << "END.value: " << sp.ptr[sp.position] << std::endl;
     }
-
     return results_vector;
 }

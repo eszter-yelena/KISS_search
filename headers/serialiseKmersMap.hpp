@@ -5,8 +5,7 @@
 //  Created by Shlomo Geva on 19/7/2023.
 //
 
-#ifndef serialiseKmersMap_hpp
-#define serialiseKmersMap_hpp
+#pragma once
 
 #include <iostream>
 #include <fstream>
@@ -16,6 +15,8 @@
 #include <map>
 #include <string>
 #include <sstream>
+
+#include "kmerUtilities.hpp"
 
 struct QueryTable {
     std::map<uint32_t, std::string> entries;
@@ -91,11 +92,9 @@ void serializeMap(const std::vector<std::vector<uint32_t>>& kmersMap, const std:
 
 void deserializeMap(const std::string& innerMapFilename, const std::string& outerMapFilename, std::vector<uint32_t>& innerMapBlob, std::vector<uint32_t>& outerMapBlob);
 
-std::vector<uint32_t> getInnerVector(const std::vector<uint32_t>& innerMapBlob, const std::vector<uint32_t>& outerMapBlob, uint32_t index);
+void getInnerVector(std::vector<store_position> &result, const std::vector<uint32_t> &innerMapBlob, const std::vector<uint32_t> &outerMapBlob, uint32_t index);
 
 bool writeTextBlobToFile(const char* text, std::size_t length, const std::string& filename);
 
 std::string readTextBlobFromFile(const std::string& filename);
-
-#endif /* serialiseKmersMap_hpp */
 

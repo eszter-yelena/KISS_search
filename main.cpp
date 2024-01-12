@@ -333,97 +333,52 @@ void findMatches(std::string genomeStr, int minMatches, int skip, int startIndex
     {
         // process sample read
         hitSet.clear(); //Clear the set of seed hits.
-        int sequenceLength = (int) sampleSequences[i].size(); //Get the length of the current sample sequence.
-        int lastPos = sequenceLength-KMERSIZE; // last seed position not exceeding read length
-        int numSeeds = ceil(lastPos/(double) skip)+1; // number of seeds needed to cover the read
-        std::vector<std::set<uint32_t>> inputSets(numSeeds);// A vector of sets to store positions of seed hits for each seed
-        int seedMatches=0; // Count of seed matches.
+        int sequenceLength = (int)sampleSequences[i].size(); //Get the length of the current sample sequence.
+        int lastPos = sequenceLength - KMERSIZE; // last seed position not exceeding read length
+        int numSeeds = ceil(lastPos / (double)skip) + 1; // number of seeds needed to cover the read
+        std::vector<store_position> inputSets;  // A vector of sets to store positions of seed hits for each seed        
+        int seedMatches = 0; // Count of seed matches.
         int maxMisses = numSeeds - MIN_MATCHES; // maximum allowed misses before skipping the rest of the seeds.
         std::string prevSeed; //String variable to store the previous seed
         int startPos; // The starting position for the current seed
 
+        inputSets.reserve(numSeeds);
 
-        for (int seedIndex=0; seedIndex < numSeeds; seedIndex++) {
-            startPos = seedIndex*skip; // move seed position along
+        for (int seedIndex = 0; seedIndex < numSeeds; seedIndex++) {
+            if ((seedIndex - inputSets.size()) > maxMisses)
+                break;
+
+            startPos = seedIndex * skip; // move seed position along
             startPos = (startPos > lastPos) ? lastPos : startPos; // avoid overshoot of last seed
 
 
         // Extract a seed (a kmer) from the sample sequence
             std::string seed = sampleSequences[i].substr(startPos, KMERSIZE);
             uint64_t pkmer = packKmer(seed.c_str());
-            auto pkmer_1_for_print = pkmer;
 
             pkmer = pkmer ^ reverse_complement(pkmer, KMERSIZE);// canonical kmer
-            auto pkmer_2_for_print = pkmer;
 
             if (MASK<UINT32_MAX)
                 kmerHash = murmurHash3(pkmer) & MASK;
             else
                 kmerHash = murmurHash3(pkmer);
 
-            auto kmerhash_for_print = kmerHash;
-            auto MASK_for_print = MASK;
-
 
             // Lookup the seed matches in the kMerMap
-            std::vector<uint32_t> innerVector = getInnerVector(innerMapBlob, outerMapBlob, kmerHash);
-             if (!innerVector.empty()) {
-                // static int count = 0;
-                // count++;
-                // if (count  ==  91 || count == 88 || count == 85 || count == 97){
-                //     std::cout << pkmer_1_for_print <<  " " << pkmer_2_for_print << " " << kmerhash_for_print << " " << MASK_for_print << "\n";
-                //     std::cout << "NOT EMPTY " << count << "hash:" << kmerHash << " from " << seed << "\n";
-                //     for (const auto& element : innerVector) {
-                //         std::cout << element << " ";
-                //      }
-                //      std::cout << std::endl;
-                    
-                // }
-                
-
-                 seedMatches++; // here if seed has matches (positions in the genome)
-                 inputSets[seedIndex].insert(innerVector.begin(), innerVector.end()); // insert matches to current seed hits
-                 inputSets[seedIndex].insert(UINT32_MAX);
-                 //std::cout<<"seed: " << seed << "matched seed: " << std::endl;
-             }
-
-             else {
-                 if ((seedIndex - seedMatches)>maxMisses)
-                     break;
-             }
+            getInnerVector(inputSets, innerMapBlob, outerMapBlob, kmerHash);
         }
 
-        inputSets.resize(seedMatches);
-         if (seedMatches<MIN_MATCHES)
-            continue;// read does not meet minimum seed mathces threshold
-
-//print out the sets
-        // for (int i = 0; i < 100; ++i) {
-        //     std::cout << "Set " << i + 1 << ": ";
-        //     for (const auto& element : inputSets[i]) {
-        //         std::cout << element << " ";
-        //     }
-        //     std::cout << std::endl;
-        //  }
-
+        if (inputSets.size() < MIN_MATCHES)
+            continue;// read does not meet minimum seed matches threshold
 
         std::cout << "input sets: " << inputSets.size() << "\n";
         //std::vector<std::pair<uint32_t, uint32_t>> validSets = validSpans(inputSets, minMatches, lastPos);
-        std::vector<std::pair<uint32_t, uint32_t>> validSets = validate_sets(inputSets, minMatches, lastPos);
-        std::cout << "valid sets: " << validSets.size() << "\n";
+        std::vector<std::pair<uint32_t, uint32_t>> valid_vectors = validate_sets(inputSets, minMatches, lastPos);
+        std::cout << "valid sets: " << valid_vectors.size() << "\n";
 
-        
-        for (const auto& validSet : validSets) {
-            localResults.push_back(std::make_tuple(i, validSet.first, validSet.first, validSet.second));
+        for (const auto& validVector : valid_vectors) {
+           localResults.push_back(std::make_tuple(i, validVector.first, validVector.first, validVector.second));
         }
-        // std::cout << "pushed back" << std::endl;
-            
-        //     for (const auto& result : localResults) {
-        //         std::cout << "Value1: " << std::get<0>(result) << std::endl;
-        //         std::cout << "Value2: " << std::get<1>(result) << std::endl;
-        //         std::cout << "Value4: " << std::get<3>(result)<< std::endl;
-        //         std::cout << "-------------------------" << std::endl;
-        //     }
     }
                 
 
@@ -477,7 +432,7 @@ void parFindMatches(int min_matches, int seed_skip, int numThreads,
         startIndex = i * chunkSize;
         endIndex = (i == numThreads - 1) ? (int) sampleSequences.size() - 1 : (int) (startIndex + chunkSize - 1);
 
-         threads.emplace_back(findMatches, genomeStr, min_matches, seed_skip, startIndex, endIndex, std::ref(innerMapBlob), std::ref(outerMapBlob), MASK, chunkSize);
+        threads.emplace_back(findMatches, genomeStr, min_matches, seed_skip, startIndex, endIndex, std::ref(innerMapBlob), std::ref(outerMapBlob), MASK, chunkSize);
     }
 
     // Wait for all threads to finish

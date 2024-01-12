@@ -5,6 +5,7 @@
 //  Created by Shlomo Geva on 19/7/2023.
 //
 #include "serialiseKmersMap.hpp"
+#include "kmerUtilities.hpp"
 
 void serializeMap(const std::vector<std::vector<uint32_t>>& kmersMap, const std::string& innerMapFilename, const std::string& outerMapFilename) {
     // Set the buffer size to 8192 bytes (for example)
@@ -64,16 +65,15 @@ void deserializeMap(const std::string& innerMapFilename, const std::string& oute
 }
 
 // Helper function to access the index
-std::vector<uint32_t> getInnerVector(const std::vector<uint32_t>& innerMapBlob, const std::vector<uint32_t>& outerMapBlob, uint32_t index) {
-    std::vector<uint32_t> innerVector;
-
-    if (index < outerMapBlob.size()) {
+void getInnerVector(std::vector<store_position> &result, const std::vector<uint32_t> &innerMapBlob, const std::vector<uint32_t> &outerMapBlob, uint32_t index)
+{
+    if (index < outerMapBlob.size())
+        {
         size_t startOffset = outerMapBlob[index];
         size_t endOffset = (index + 1 < outerMapBlob.size()) ? outerMapBlob[index + 1] : innerMapBlob.size();
-        innerVector = std::vector<uint32_t>(innerMapBlob.begin() + startOffset, innerMapBlob.begin() + endOffset);
-    }
-
-    return innerVector;
+        if (startOffset != endOffset)
+            result.push_back(store_position{innerMapBlob.data() + startOffset, 0, endOffset - startOffset});
+        }
 }
 
 bool writeTextBlobToFile(const char* text, std::size_t length, const std::string& filename) {

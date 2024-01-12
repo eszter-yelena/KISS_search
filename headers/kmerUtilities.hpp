@@ -4,9 +4,7 @@
 //
 //  Created by Shlomo Geva on 13/7/2023.
 //
-
-#ifndef kmerUtilities_hpp
-#define kmerUtilities_hpp
+#pragma once
 
 #include <stdio.h>
 #include <sys/stat.h>
@@ -28,6 +26,12 @@ struct Position {
     size_t inputSetIndex;
 };
 
+struct store_position {
+    const uint32_t* ptr;
+    std::size_t position;
+    std::size_t size;
+};
+
 uint64_t packKmer(const char *sequence);
 std::string unpackKmer(uint64_t packed_sequence);
 std::vector<uint32_t> findLongestSequenceWithinRange(std::vector<uint32_t>& nums, int range);
@@ -39,6 +43,4 @@ uint32_t getSpan(const std::vector<uint32_t>& pos, uint32_t span);
 std::vector<uint32_t> cleanupVector(const std::vector<uint32_t>& pos, uint32_t length);
 std::vector<std::pair<uint32_t, uint32_t>> validSpans(const std::vector<std::set<uint32_t>>& inputSets, uint32_t N, uint32_t S);
 uint32_t getSpan(const std::vector<Position>& pos, uint32_t span);
-std::vector<std::pair<uint32_t, uint32_t>> validate_sets(std::vector<std::set<uint32_t>>& input_sets, uint32_t min_matches, uint32_t query_length);
-#endif /* kmerUtilities_hpp */
-
+std::vector<std::pair<uint32_t, uint32_t>> validate_sets(std::vector<store_position>& input_sets, uint32_t min_matches, uint32_t query_length);
