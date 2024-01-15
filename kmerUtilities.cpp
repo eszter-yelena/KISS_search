@@ -437,10 +437,6 @@ std::vector<std::pair<uint32_t, uint32_t>> validate_sets(std::vector<store_posit
     if (positions.size() >= min_matches)
     {
         sort_positions(positions);
-        // for (size_t x = 1; x < positions.size(); x++)
-        //     if (positions[x].ptr[0] == positions[x-1].ptr[0])
-        //         std::cout << "duplicate:" << positions[x].ptr[0] << std::endl;
-        // exit(0);
         uint32_t firstValue = *positions[0].ptr;
         uint32_t minMatchesValue = *positions[min_matches - 1].ptr;
 
@@ -448,35 +444,39 @@ std::vector<std::pair<uint32_t, uint32_t>> validate_sets(std::vector<store_posit
         {
             if (minMatchesValue - firstValue <= query_length) 
             {
-                results_vector.emplace_back(firstValue, minMatchesValue);
+                uint32_t in_range_value = firstValue + query_length;
 
                 // for (const auto &sp : positions)
                 //     std::cout << "A.value: " << sp.ptr[sp.position] << std::endl;
 
+                uint32_t top_of_range;
                 for (auto &sp : positions)
-                    if (sp.ptr[sp.position] <= minMatchesValue)
-                        sp.position = static_cast<uint32_t>(std::lower_bound(sp.ptr + sp.position, sp.ptr + sp.size, minMatchesValue) - sp.ptr);
+                    {
+                    if (sp.ptr[sp.position] <= in_range_value)
+                        {
+                        top_of_range = sp.ptr[sp.position];
+                        sp.position = static_cast<uint32_t>(std::lower_bound(sp.ptr + sp.position, sp.ptr + sp.size, in_range_value) - sp.ptr);
+                        }
+                    else 
+                        break;
+                    }
+                results_vector.emplace_back(firstValue, top_of_range);
             }
 
             else 
             {
                 uint32_t minValueToReach = minMatchesValue - query_length;
 
-                for (auto &sp : positions)
-                    if (sp.ptr[sp.position] != UINT32_MAX)
-                        sp.position = static_cast<uint32_t>(std::lower_bound(sp.ptr + sp.position, sp.ptr + sp.size, minValueToReach) - sp.ptr);
+                for (uint32_t pos = 0; pos < min_matches; pos++)
+                    positions[pos].position = static_cast<uint32_t>(std::lower_bound(positions[pos].ptr + positions[pos].position, positions[pos].ptr + positions[pos].size, minValueToReach) - positions[pos].ptr);
             }
             
             sort_positions(positions);
             firstValue = positions[0].ptr[positions[0].position];
             minMatchesValue = positions[min_matches - 1].ptr[positions[min_matches - 1].position];
-            // printf("%d:%p %d:%p \n", 0, positions[0].ptr, min_matches - 1, positions[min_matches - 1].ptr);
         } 
 
         while (minMatchesValue != UINT32_MAX);
-
-        // for (const auto &sp : positions)
-        //     std::cout << "END.value: " << sp.ptr[sp.position] << std::endl;
-    }
+    } 
     return results_vector;
 }
