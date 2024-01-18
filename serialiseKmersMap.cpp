@@ -72,7 +72,7 @@ void getInnerVector(std::vector<store_position> &result, const std::vector<uint3
         size_t startOffset = outerMapBlob[index];
         size_t endOffset = (index + 1 < outerMapBlob.size()) ? outerMapBlob[index + 1] : innerMapBlob.size();
         if (startOffset != endOffset)
-            result.push_back(store_position{innerMapBlob.data() + startOffset, 0, endOffset - startOffset});
+            result.push_back(store_position{innerMapBlob.data() + startOffset, 0, endOffset - startOffset, index});
         }
 }
 
@@ -129,7 +129,7 @@ std:: cout << "reading\n";
         std::istringstream iss(line);
         if (iss >> key) {
             value = line.substr(line.find(' ') + 1);
-           std::cout << key << " : " << value << std::endl;
+        //    std::cout << key << " : " << value << std::endl;
             table.entries[key] = value;
         }
     }

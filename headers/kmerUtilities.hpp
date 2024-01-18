@@ -30,6 +30,7 @@ struct store_position {
     const uint32_t* ptr;
     std::size_t position;
     std::size_t size;
+    uint32_t hash;
 };
 
 uint64_t packKmer(const char *sequence);
@@ -44,3 +45,4 @@ std::vector<uint32_t> cleanupVector(const std::vector<uint32_t>& pos, uint32_t l
 std::vector<std::pair<uint32_t, uint32_t>> validSpans(const std::vector<std::set<uint32_t>>& inputSets, uint32_t N, uint32_t S);
 uint32_t getSpan(const std::vector<Position>& pos, uint32_t span);
 std::vector<std::pair<uint32_t, uint32_t>> validate_sets(std::vector<store_position>& input_sets, uint32_t min_matches, uint32_t query_length);
+void process_duplicates(std::vector<store_position> &input_positions);

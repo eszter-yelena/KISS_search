@@ -1,1 +1,2 @@
-   1         1     1         0        87 2.000000   88=7352S
+matches read no.    ref   start     end   SW SCORE  cigar
+   1         1     1         0      7410 2.000000   7411=29S

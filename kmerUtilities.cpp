@@ -297,127 +297,6 @@ void displayProgress(uint64_t current, uint64_t total, int desiredUpdateInterval
      */
 }
 
-
-/*
-    isVALID
- */
-bool isValid(const std::vector<int>& counts, uint32_t minMatches) {
-    size_t uniqueSets = 0;
-    for (int count : counts) {
-        if (count > 0) {
-            uniqueSets++;
-        }
-    }
-    return uniqueSets >= minMatches;
-}
-
-/*
-    VALID SPANS
- */
-std::vector<std::pair<uint32_t, uint32_t>> validSpans(const std::vector<std::set<uint32_t>>& inputSets, uint32_t minMatches, uint32_t lastPos) {
-    
-    std::vector<std::pair<uint32_t, uint32_t>> result;
-    size_t numSets = inputSets.size();
-
-
-    // Create a vector to store positions along with their set index
-    std::vector<Position> positions;
-    for (size_t i = 0; i < numSets; ++i) {
-        for (uint32_t pos : inputSets[i]) {
-            positions.push_back({pos, i});
-        }
-    }
-
-    // Sort positions based on their values
-    std::sort(positions.begin(), positions.end(), [](const Position& a, const Position& b) {
-        return a.value < b.value;
-    });
-
-    // for (const auto &p : positions ){
-    //     std:: cout << "positions: " << p.value << ": " << p.inputSetIndex << "\n";
-    // }
-
-    // Initialize counts for each set to 0
-    std::vector<int> counts(numSets, 0);
-    size_t startPos = 0;
-    size_t endPos = 0;
-
-    // Iterate over the sorted positions
-    while (startPos < positions.size()) {
-        if (endPos < positions.size() && positions[endPos].value - positions[startPos].value <= lastPos) {
-            counts[positions[endPos].inputSetIndex]++;
-            // Check if the current configuration of counts satisfies the condition N
-            if (isValid(counts, minMatches)) {        
-                // If valid, collect the start and end positions of the range
-                if (positions[endPos].value-positions[startPos].value+KMERSIZE >= CUTOFF) {
-                    // TODO: check coverage against cutoff
-                    std::vector<Position> pos(endPos-startPos+1);
-                    for (size_t k=startPos; k<=endPos; k++)
-                        pos[k-startPos] = positions[k];
-                   
-                    if (getSpan(pos,KMERSIZE)>=CUTOFF)
-                        // collecting first and last position in range (for SW alignment)
-                        result.push_back({positions[startPos].value, positions[endPos].value});
-                }
-
-                // Skip the entire sequence
-                while (startPos < positions.size() && positions[startPos].value <= positions[endPos].value) {
-                    counts[positions[startPos].inputSetIndex]--;
-                    startPos++;
-                }
-            }
-            endPos++;
-        } else {
-            counts[positions[startPos].inputSetIndex]--;
-            startPos++;
-        }
-    }
-
-// for debugging checking results are the same
-// std::cout << "Results: ";
-// for (const auto& span : result) {
-//     std::cout << "[" << span.first << ", " << span.second << "] ";
-// }
-// std:: cout << "\n";
-
-    return result;
-}
-
-/*
-    GET SPAN
- */
-uint32_t getSpan(const std::vector<Position>& pos, uint32_t span) {
-    if (pos.empty()) {
-        return 0;
-    }
-
-    std::vector<Span> spans;
-
-    for (const Position p : pos) {
-        spans.push_back({p.value, p.value + span - 1});
-    }
-
-    std::vector<Span> mergedSpans;
-    std::sort(spans.begin(), spans.end(), [](const Span& a, const Span& b) {
-        return a.start < b.start;
-    });
-
-    for (const Span& span : spans) {
-        if (mergedSpans.empty() || span.start > mergedSpans.back().end) {
-            mergedSpans.push_back(span);
-        } else {
-            mergedSpans.back().end = std::max(mergedSpans.back().end, span.end);
-        }
-    }
-
-    uint32_t totalSpan = 0;
-    for (const Span& span : mergedSpans) {
-        totalSpan += (span.end - span.start + 1);
-    }
-
-    return totalSpan;
-}
-
 /* 
     SORT VECTORS FUNCTION
 */
@@ -427,6 +306,53 @@ void sort_positions(std::vector<store_position> &input_positions) {
                   return a.ptr[a.position] < b.ptr[b.position];
               });
 }
+/* 
+    PROCESS DUPLICATE VECTORS FUNCTION
+*/
+void process_duplicates(std::vector<store_position> &input_positions){
+    
+    sort_positions(input_positions);
+
+    size_t duplicates = 1;
+    size_t start = 0;
+    for (std::size_t index = 1; index < input_positions.size(); index++)
+        {
+        if (input_positions[index].ptr[0] == input_positions[index - 1].ptr[0]) 
+            duplicates++;
+        else
+            {
+            if (duplicates != 1)
+                {
+                size_t size = input_positions[start].size;
+                const uint32_t *ptr = input_positions[start].ptr;
+
+                // Allocate space for the split lists
+                for (size_t which = start; which < start + duplicates; which++)
+                    {
+                    // TO DO : Add to store_position the knowledge that this was dynamically allocated so that we can deallocate it later.
+                    input_positions[which].ptr = new uint32_t[((size + duplicates - 1) / duplicates) + 1];
+                    input_positions[which].size = 0;
+                    }
+
+                // Split the list n ways (round robin) where n is the number of duplicates
+                for (size_t pos = 0; pos < size - 1; pos++)  // -1 because we don't want the sentinal (which is added later)
+                    {
+                    store_position *which = &input_positions[start + (pos % duplicates)];
+                    *((uint32_t *)(which->ptr) + (which->size++)) = ptr[pos];
+                    }
+
+                // Put the sentinal on the end
+                for (size_t pos = start; pos < start + duplicates; pos++)
+                    {
+                    store_position *which = &input_positions[pos];
+                    *((uint32_t *)(which->ptr) + (which->size++)) = UINT32_MAX;
+                    }
+                }
+            start = index;
+            duplicates = 1;
+            }
+        }
+ }
 
 /* 
     VALIDATE VECTORS FUNCTION
@@ -445,21 +371,18 @@ std::vector<std::pair<uint32_t, uint32_t>> validate_sets(std::vector<store_posit
             if (minMatchesValue - firstValue <= query_length) 
             {
                 uint32_t in_range_value = firstValue + query_length;
-
-                // for (const auto &sp : positions)
-                //     std::cout << "A.value: " << sp.ptr[sp.position] << std::endl;
-
                 uint32_t top_of_range;
+
                 for (auto &sp : positions)
-                    {
+                {
                     if (sp.ptr[sp.position] <= in_range_value)
                         {
-                        top_of_range = sp.ptr[sp.position];
-                        sp.position = static_cast<uint32_t>(std::lower_bound(sp.ptr + sp.position, sp.ptr + sp.size, in_range_value) - sp.ptr);
+                            top_of_range = sp.ptr[sp.position];
+                            sp.position = static_cast<uint32_t>(std::lower_bound(sp.ptr + sp.position, sp.ptr + sp.size, in_range_value) - sp.ptr);
                         }
                     else 
                         break;
-                    }
+                }
                 results_vector.emplace_back(firstValue, top_of_range);
             }
 
@@ -480,3 +403,7 @@ std::vector<std::pair<uint32_t, uint32_t>> validate_sets(std::vector<store_posit
     } 
     return results_vector;
 }
+
+// example of printing out valid vectors
+// for (const auto &sp : positions)
+//     std::cout << "A.value: " << sp.ptr[sp.position] << std::endl;

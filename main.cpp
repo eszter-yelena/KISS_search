@@ -89,11 +89,21 @@ void writeMatchesToFile(const std::string& filename,
         }
        
         // key is reference# in fasta file
-        // note: the queryTable struct is define in serialiseKmersMap (for some unkown reason... :-) )
+        // note: the queryTable struct is define in serialiseKmersMap (for some unknown reason... :-) )
         uint32_t key = ref_ID_Table.query(refBegin);
         if (key == -1) {
-            std::cout << "refrenceIndex = " << refBegin << " Ref_ID not found." << std::endl;
+            std::cout << "referenceIndex = " << refBegin << " Ref_ID not found." << std::endl;
         }
+        
+        outFile 
+        << std::setw(4) << std::right << "matches" << " "
+        << std::setw(6) << std::right << "read no." << " "
+        << std::setw(6) << std::right << "ref" << " "
+        << std::setw(7) << std::right << "start" << " "
+        << std::setw(7) << std::right << "end" << " "
+        << std::setw(10) << std::right << "SW SCORE" << " "
+        << " cigar"
+        << std::endl;
 
         k = ref_ID_Table.getKeyFromIndex(key);
         std::ostringstream oss;
@@ -106,8 +116,6 @@ void writeMatchesToFile(const std::string& filename,
             << "   " << cigar             // cigar score
 //            << " " << ref_ID_Table.getValue(k)                         // Sequence ID (from fasta file
             << std::endl;
-        
-        
 
         outFile << oss.str();
     }
@@ -204,7 +212,6 @@ std::string getBaseName(const std::string& filePath) {
 }
 
 
-
 /*
     GET REFERENCE
 */
@@ -227,6 +234,7 @@ void getReference(std::string inputFile,
     // DeSerialize the map
     auto start = std::chrono::steady_clock::now();
     genomeStr = readTextBlobFromFile(genomeFilename);
+    std::cout << "genome length:" << genomeStr.size() << "\n";
     deserializeMap(innerMapFilename, outerMapFilename, innerMapBlob, outerMapBlob);
     auto end = std::chrono::steady_clock::now();
     auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(end - start);
@@ -245,7 +253,7 @@ void getReference(std::string inputFile,
 
 /*
      LOAD SAMPLES
- */
+*/
 void loadSamples(const std::string& fastaFile) {
     // Read sample file into memory
     std::cout << std::endl << "Loading Samples: " << fastaFile << std::endl;
@@ -322,7 +330,7 @@ void loadSamples(const std::string& fastaFile) {
 /*
     FIND MATCHES
  */
-void findMatches(std::string genomeStr, int minMatches, int skip, int startIndex, int endIndex, std::vector<uint32_t>& innerMapBlob, std::vector<uint32_t>& outerMapBlob, uint32_t MASK, int chunkSize) {
+void findMatches(std::string genomeStr, int minMatches, int skip, int startIndex, int endIndex, std::vector<uint32_t> &innerMapBlob, std::vector<uint32_t> &outerMapBlob, uint32_t MASK, int chunkSize) {
     // localResults stores the sample index and matching refID, minPos, maxPos of seeds found
     std::vector<std::tuple<uint32_t, uint32_t, uint32_t, uint32_t>> localResults;
     std::vector<std::tuple<uint32_t, uint32_t, uint32_t, double, std::string>> localResultsSW;
@@ -370,14 +378,15 @@ void findMatches(std::string genomeStr, int minMatches, int skip, int startIndex
 
         if (inputSets.size() < MIN_MATCHES)
             continue;// read does not meet minimum seed matches threshold
-
+                                                                                                       
         std::cout << "input sets: " << inputSets.size() << "\n";
-        //std::vector<std::pair<uint32_t, uint32_t>> validSets = validSpans(inputSets, minMatches, lastPos);
+        process_duplicates(inputSets);
         std::vector<std::pair<uint32_t, uint32_t>> valid_vectors = validate_sets(inputSets, minMatches, lastPos);
         std::cout << "valid sets: " << valid_vectors.size() << "\n";
 
         for (const auto& validVector : valid_vectors) {
            localResults.push_back(std::make_tuple(i, validVector.first, validVector.first, validVector.second));
+           std::cout << validVector.first << " - " << validVector.second  << " Len:" << validVector.second - validVector.first << "\n";
         }
     }
                 
@@ -484,7 +493,7 @@ void intialiseKISS(int argc, char* argv[]) {
     KMERSIZE = 32;
     MIN_MATCHES = 5;
     SEED_SKIP = 32;
-    THREADS = std::thread::hardware_concurrency();
+    THREADS = 1;//std::thread::hardware_concurrency();
     CUTOFF = 15;
     REFERENCE = "";/* "/Users/geva/Crispr/AMR106.fasta"; */
     READS = ""; /* /Users/geva/CAMDA/MatlabCamda2023/gCSD16_NYC_17_1.fasta" */;
