@@ -347,7 +347,7 @@ void process_duplicates(std::vector<store_position> &input_positions){
                     store_position *which = &input_positions[pos];
                     *((uint32_t *)(which->ptr) + (which->size++)) = UINT32_MAX;
                     }
-                }
+                 }
             start = index;
             duplicates = 1;
             }
@@ -378,12 +378,17 @@ std::vector<std::pair<uint32_t, uint32_t>> validate_sets(std::vector<store_posit
                     if (sp.ptr[sp.position] <= in_range_value)
                         {
                             top_of_range = sp.ptr[sp.position];
-                            sp.position = static_cast<uint32_t>(std::lower_bound(sp.ptr + sp.position, sp.ptr + sp.size, in_range_value) - sp.ptr);
+
+                            while(sp.ptr[sp.position] < minMatchesValue)
+                                sp.position++;
+                            // sp.position = static_cast<uint32_t>(std::lower_bound(sp.ptr + sp.position, sp.ptr + sp.size, minMatchesValue) - sp.ptr);
                         }
                     else 
                         break;
                 }
-                results_vector.emplace_back(firstValue, top_of_range);
+                //results_vector.emplace_back(firstValue, top_of_range);
+                results_vector.emplace_back(firstValue, minMatchesValue);
+
             }
 
             else 
@@ -391,7 +396,9 @@ std::vector<std::pair<uint32_t, uint32_t>> validate_sets(std::vector<store_posit
                 uint32_t minValueToReach = minMatchesValue - query_length;
 
                 for (uint32_t pos = 0; pos < min_matches; pos++)
-                    positions[pos].position = static_cast<uint32_t>(std::lower_bound(positions[pos].ptr + positions[pos].position, positions[pos].ptr + positions[pos].size, minValueToReach) - positions[pos].ptr);
+                         while(positions[pos].ptr[positions[pos].position] < minMatchesValue)
+                                positions[pos].position++;
+                    // positions[pos].position = static_cast<uint32_t>(std::lower_bound(positions[pos].ptr + positions[pos].position, positions[pos].ptr + positions[pos].size, minValueToReach) - positions[pos].ptr);
             }
             
             sort_positions(positions);

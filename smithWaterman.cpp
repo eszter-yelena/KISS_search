@@ -124,6 +124,18 @@ std::string reverseComplement(const std::string& sequence) {
             case 'G':
                 reverseSeq += 'C';
                 break;
+             case 'a':
+                reverseSeq += 'T';
+                break;
+            case 't':
+                reverseSeq += 'A';
+                break;
+            case 'c':
+                reverseSeq += 'G';
+                break;
+            case 'g':
+                reverseSeq += 'C';
+                break;
             default:
                 reverseSeq += nucleotide;
         }
@@ -177,7 +189,7 @@ std::vector<std::tuple<uint32_t, uint32_t, uint32_t, double, std::string>> getSW
         // this code is doing alignment on a limited region in the refrence
         // comment it out for a full alignment with the reference (beware long ref sequences)
         // TODO: should be able to work out from the positions of seeds in which direction to align
-        uint32_t expand = 50;
+        uint32_t expand = 50; //min_matches and query length
         minPos = (minPos <= expand) ? 0 : (minPos - expand);
         maxPos = std::min(maxPos+expand,(uint32_t) genome.size());
         std::string referenceSequence = genome.substr(minPos,maxPos-minPos+1);

@@ -380,13 +380,21 @@ void findMatches(std::string genomeStr, int minMatches, int skip, int startIndex
             continue;// read does not meet minimum seed matches threshold
                                                                                                        
         std::cout << "input sets: " << inputSets.size() << "\n";
+        
+         auto duplicates_start = std::chrono::steady_clock::now();
         process_duplicates(inputSets);
+         auto duplicates_end = std::chrono::steady_clock::now();
+        auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(duplicates_end - duplicates_start);
+        int minutes = (int) duration.count() / (1000 * 60);
+        float seconds = ((duration.count() - minutes * 1000 * (float) 60))/1000;
+        std::cout << std::endl << "Matching time: " << minutes << " min " << seconds << " sec" << std::endl;
+
         std::vector<std::pair<uint32_t, uint32_t>> valid_vectors = validate_sets(inputSets, minMatches, lastPos);
         std::cout << "valid sets: " << valid_vectors.size() << "\n";
 
         for (const auto& validVector : valid_vectors) {
            localResults.push_back(std::make_tuple(i, validVector.first, validVector.first, validVector.second));
-           std::cout << validVector.first << " - " << validVector.second  << " Len:" << validVector.second - validVector.first << "\n";
+           //std::cout << validVector.first << " - " << validVector.second  << " Len:" << validVector.second - validVector.first << "\n";
         }
     }
                 

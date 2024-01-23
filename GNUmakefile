@@ -1,7 +1,7 @@
 # Compiler and flags
 CC = g++
 #CFLAGS = -pthread -O3 -std=c++11
-CFLAGS = -pthread -g -std=c++11
+CFLAGS = -pthread -g -std=c++11 -O3
 
 # Source directory and files
 SOURCE_DIR = .
