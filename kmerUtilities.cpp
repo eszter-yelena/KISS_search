@@ -80,10 +80,10 @@ std::vector<uint32_t> cleanupVector(const std::vector<uint32_t>& pos, uint32_t l
     return cleanedPos;
 }
 
-//struct Span {
+// struct Span {
 //    uint32_t start;
 //    uint32_t end;
-//};
+// };
 
 uint32_t getSpan(const std::vector<uint32_t>& pos, uint32_t span) {
     // calculate the span of matches covered by seeds
@@ -284,68 +284,58 @@ void displayProgress(uint64_t current, uint64_t total, int desiredUpdateInterval
         std::cout.flush();
         lastDisplayedPercent = percent;
     }
-    /*
-     // example of use:
-     int totalIterations = 1000;
-     int percentUpdateInterval = 10; // Update progress every 10%
-     
-     for (int i = 0; i < totalIterations; ++i) {
-     // Your loop processing here
-     
-     displayProgress(i + 1, totalIterations, percentUpdateInterval);
-     }
-     */
 }
 
 /* 
     SORT VECTORS FUNCTION
 */
-void sort_positions(std::vector<store_position> &input_positions) {
-    std::sort(input_positions.begin(), input_positions.end(),
+void sort_positions(std::vector<store_position> &input_positions, uint32_t size)
+    {
+    std::sort(&input_positions[0], &input_positions[size],
               [](const store_position &a, const store_position &b) {
-                  return a.ptr[a.position] < b.ptr[b.position];
+                  return (*a.position < *b.position);
               });
-}
+    }
+
 /* 
     PROCESS DUPLICATE VECTORS FUNCTION
 */
 void process_duplicates(std::vector<store_position> &input_positions){
     
-    sort_positions(input_positions);
-
+    sort_positions(input_positions, input_positions.size());
     size_t duplicates = 1;
     size_t start = 0;
     for (std::size_t index = 1; index < input_positions.size(); index++)
         {
-        if (input_positions[index].ptr[0] == input_positions[index - 1].ptr[0]) 
+        if (*input_positions[index].position == *input_positions[index - 1].position) 
             duplicates++;
         else
             {
             if (duplicates != 1)
                 {
                 size_t size = input_positions[start].size;
-                const uint32_t *ptr = input_positions[start].ptr;
+                const uint32_t *ptr = input_positions[start].position;
 
                 // Allocate space for the split lists
                 for (size_t which = start; which < start + duplicates; which++)
                     {
                     // TO DO : Add to store_position the knowledge that this was dynamically allocated so that we can deallocate it later.
-                    input_positions[which].ptr = new uint32_t[((size + duplicates - 1) / duplicates) + 1];
+                    input_positions[which].position = new uint32_t[((size + duplicates - 1) / duplicates) + 1];
                     input_positions[which].size = 0;
                     }
 
                 // Split the list n ways (round robin) where n is the number of duplicates
-                for (size_t pos = 0; pos < size - 1; pos++)  // -1 because we don't want the sentinal (which is added later)
+                for (size_t pos = 0; pos < size; pos++)  // -1 because we don't want the sentinal (which is added later)
                     {
                     store_position *which = &input_positions[start + (pos % duplicates)];
-                    *((uint32_t *)(which->ptr) + (which->size++)) = ptr[pos];
+                    *((uint32_t *)(which->position) + (which->size++)) = ptr[pos];
                     }
 
                 // Put the sentinal on the end
                 for (size_t pos = start; pos < start + duplicates; pos++)
                     {
                     store_position *which = &input_positions[pos];
-                    *((uint32_t *)(which->ptr) + (which->size++)) = UINT32_MAX;
+                    *((uint32_t *)(which->position) + (which->size++)) = UINT32_MAX;
                     }
                  }
             start = index;
@@ -359,54 +349,41 @@ void process_duplicates(std::vector<store_position> &input_positions){
 */
 std::vector<std::pair<uint32_t, uint32_t>> validate_sets(std::vector<store_position> &positions, uint32_t min_matches, uint32_t query_length){
     std::vector<std::pair<uint32_t, uint32_t>> results_vector;
-   
-    if (positions.size() >= min_matches)
+    uint32_t number_of_lists = positions.size();
+
+    
+    while (number_of_lists >= min_matches)
     {
-        sort_positions(positions);
-        uint32_t firstValue = *positions[0].ptr;
-        uint32_t minMatchesValue = *positions[min_matches - 1].ptr;
+        sort_positions(positions, number_of_lists);
 
-       do 
+        uint32_t firstValue = *positions[0].position;
+        uint32_t minMatchesValue = *positions[min_matches - 1].position;
+
+        if (minMatchesValue - firstValue <= query_length) 
         {
-            if (minMatchesValue - firstValue <= query_length) 
+            for (uint32_t pos = 0; *positions[pos].position <= minMatchesValue; pos++)
             {
-                uint32_t in_range_value = firstValue + query_length;
-                uint32_t top_of_range;
-
-                for (auto &sp : positions)
-                {
-                    if (sp.ptr[sp.position] <= in_range_value)
-                        {
-                            top_of_range = sp.ptr[sp.position];
-
-                            while(sp.ptr[sp.position] < minMatchesValue)
-                                sp.position++;
-                            // sp.position = static_cast<uint32_t>(std::lower_bound(sp.ptr + sp.position, sp.ptr + sp.size, minMatchesValue) - sp.ptr);
-                        }
-                    else 
-                        break;
-                }
-                //results_vector.emplace_back(firstValue, top_of_range);
-                results_vector.emplace_back(firstValue, minMatchesValue);
-
-            }
-
-            else 
-            {
-                uint32_t minValueToReach = minMatchesValue - query_length;
-
-                for (uint32_t pos = 0; pos < min_matches; pos++)
-                         while(positions[pos].ptr[positions[pos].position] < minMatchesValue)
-                                positions[pos].position++;
-                    // positions[pos].position = static_cast<uint32_t>(std::lower_bound(positions[pos].ptr + positions[pos].position, positions[pos].ptr + positions[pos].size, minValueToReach) - positions[pos].ptr);
-            }
+                while (*positions[pos].position <= minMatchesValue)
+                    positions[pos].position++;
             
-            sort_positions(positions);
-            firstValue = positions[0].ptr[positions[0].position];
-            minMatchesValue = positions[min_matches - 1].ptr[positions[min_matches - 1].position];
-        } 
+                if (*positions[pos].position == UINT32_MAX)
+                    std::swap(positions[--number_of_lists], positions[pos]);
+            }
 
-        while (minMatchesValue != UINT32_MAX);
+            results_vector.emplace_back(firstValue, minMatchesValue);
+        }
+        else
+        {
+
+            for (uint32_t pos = 0; pos < min_matches; pos++)
+            {
+                while (*positions[pos].position < minMatchesValue)
+                        positions[pos].position++;
+                if (*positions[pos].position == UINT32_MAX)
+                    std::swap(positions[--number_of_lists], positions[pos]); 
+            }
+        }
+        
     } 
     return results_vector;
 }

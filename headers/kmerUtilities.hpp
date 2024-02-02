@@ -27,10 +27,8 @@ struct Position {
 };
 
 struct store_position {
-    const uint32_t* ptr;
-    std::size_t position;
-    std::size_t size;
-    uint32_t hash;
+const uint32_t *position;
+std::size_t size;
 };
 
 uint64_t packKmer(const char *sequence);

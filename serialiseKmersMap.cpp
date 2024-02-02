@@ -72,7 +72,7 @@ void getInnerVector(std::vector<store_position> &result, const std::vector<uint3
         size_t startOffset = outerMapBlob[index];
         size_t endOffset = (index + 1 < outerMapBlob.size()) ? outerMapBlob[index + 1] : innerMapBlob.size();
         if (startOffset != endOffset)
-            result.push_back(store_position{innerMapBlob.data() + startOffset, 0, endOffset - startOffset, index});
+            result.push_back(store_position{innerMapBlob.data() + startOffset, endOffset - startOffset});
         }
 }
 

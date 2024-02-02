@@ -77,6 +77,17 @@ void writeMatchesToFile(const std::string& filename,
     int unique=0;
     int prev=-1;
     uint32_t k;
+
+      outFile 
+        << std::setw(4) << std::right << "matches" << " "
+        << std::setw(6) << std::right << "read no." << " "
+        << std::setw(6) << std::right << "ref" << " "
+        << std::setw(7) << std::right << "start" << " "
+        << std::setw(7) << std::right << "end" << " "
+        << std::setw(10) << std::right << "SW SCORE" << " "
+        << " cigar"
+        << std::endl;
+        
     for (const auto& result : resultsSW) {
         uint32_t sampleIndex, refBegin, refEnd;
         double swScore;
@@ -94,16 +105,6 @@ void writeMatchesToFile(const std::string& filename,
         if (key == -1) {
             std::cout << "referenceIndex = " << refBegin << " Ref_ID not found." << std::endl;
         }
-        
-        outFile 
-        << std::setw(4) << std::right << "matches" << " "
-        << std::setw(6) << std::right << "read no." << " "
-        << std::setw(6) << std::right << "ref" << " "
-        << std::setw(7) << std::right << "start" << " "
-        << std::setw(7) << std::right << "end" << " "
-        << std::setw(10) << std::right << "SW SCORE" << " "
-        << " cigar"
-        << std::endl;
 
         k = ref_ID_Table.getKeyFromIndex(key);
         std::ostringstream oss;
@@ -357,11 +358,12 @@ void findMatches(std::string genomeStr, int minMatches, int skip, int startIndex
                 break;
 
             startPos = seedIndex * skip; // move seed position along
-            startPos = (startPos > lastPos) ? lastPos : startPos; // avoid overshoot of last seed
-
+            if (startPos > lastPos)    
+                break;                   // avoid overshoot of last seed
 
         // Extract a seed (a kmer) from the sample sequence
             std::string seed = sampleSequences[i].substr(startPos, KMERSIZE);
+
             uint64_t pkmer = packKmer(seed.c_str());
 
             pkmer = pkmer ^ reverse_complement(pkmer, KMERSIZE);// canonical kmer
@@ -379,23 +381,22 @@ void findMatches(std::string genomeStr, int minMatches, int skip, int startIndex
         if (inputSets.size() < MIN_MATCHES)
             continue;// read does not meet minimum seed matches threshold
                                                                                                        
-        std::cout << "input sets: " << inputSets.size() << "\n";
-        
-         auto duplicates_start = std::chrono::steady_clock::now();
         process_duplicates(inputSets);
-         auto duplicates_end = std::chrono::steady_clock::now();
-        auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(duplicates_end - duplicates_start);
-        int minutes = (int) duration.count() / (1000 * 60);
-        float seconds = ((duration.count() - minutes * 1000 * (float) 60))/1000;
-        std::cout << std::endl << "Matching time: " << minutes << " min " << seconds << " sec" << std::endl;
+        std::cout << "input sets: " << inputSets.size() << "\n";
 
         std::vector<std::pair<uint32_t, uint32_t>> valid_vectors = validate_sets(inputSets, minMatches, lastPos);
         std::cout << "valid sets: " << valid_vectors.size() << "\n";
 
+        // std::ofstream outFile("validSetsEszterDuplciates.dat");
+
         for (const auto& validVector : valid_vectors) {
            localResults.push_back(std::make_tuple(i, validVector.first, validVector.first, validVector.second));
-           //std::cout << validVector.first << " - " << validVector.second  << " Len:" << validVector.second - validVector.first << "\n";
+            // std::cout << validVector.first << " , " << validVector.second  << "\n";
+            // outFile << validVector.first << "," << validVector.second << "\n";
+            //   std::cout << validVector.first << " - " << validVector.second  << " Len:" << validVector.second - validVector.first << "\n";
         }
+
+        // outFile.close();
     }
                 
 
