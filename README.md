@@ -5,6 +5,7 @@ Welcome to the KISS Search Program, a simple and efficient tool for searching re
 
 ## Quick Start
 To compile the program and generate the executable (`KISS.out`), simply run the following command in your terminal:
+NOTE: the make file was developed to run on linux so may have to be adjusted to run on windows or mac.
 
 ```bash
 make
